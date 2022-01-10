@@ -250,7 +250,7 @@ func TestSha256_1_sse(t *testing.T) {
 
 func TestSha256_1_avx(t *testing.T) {
 	digests := make([][32]byte, 32)
-	Sha256_1_avx(&digests[0][0], _test_32_block, 32)
+	Hash(&digests[0][0], _test_32_block, 32)
 	if !reflect.DeepEqual(digests, _test_32_digests) {
 		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests, digests)
 		t.Fail()
@@ -259,7 +259,7 @@ func TestSha256_1_avx(t *testing.T) {
 
 func TestSha256_8_avx2(t *testing.T) {
 	digests := make([][32]byte, 32)
-	Sha256_8_avx2(&digests[0][0], _test_32_block, 32)
+	Hash(&digests[0][0], _test_32_block, 32)
 	if !reflect.DeepEqual(digests, _test_32_digests) {
 		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests, digests)
 		t.Fail()
@@ -271,6 +271,6 @@ func BenchmarkSha256_1_avx(b *testing.B) {
 	digests := make([][32]byte, 1)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Sha256_1_avx(&digests[0][0], chunks, 1)
+		Hash(&digests[0][0], chunks, 1)
 	}
 }

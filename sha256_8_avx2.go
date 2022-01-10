@@ -24,7 +24,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-
 package gohashtree
 
-func Sha256_8_avx2(digests *byte, p [][32]byte, count uint32)
+import (
+	"golang.org/x/sys/cpu"
+)
+
+var hasAVX2 = cpu.X86.HasAVX2 && cpu.X86.HasBMI2
+
+func Hash(digests *byte, p [][32]byte, count uint32)
