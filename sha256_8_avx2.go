@@ -27,4 +27,4 @@ SOFTWARE.
 
 package gohashtree
 
-func Sha256_1_avx(digests *byte, p [][32]byte, count uint32)
+func Sha256_8_avx2(digests *byte, p [][32]byte, count uint32)

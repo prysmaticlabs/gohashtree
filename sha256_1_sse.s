@@ -123,11 +123,11 @@ SOFTWARE.
 	ORL	DI, BX; \
 	ADDL	BX, h	
 
-TEXT ·sha256_1_sse(SB), 0, $296-40
+TEXT ·sha256_1_sse(SB), 0, $296-36
 
 	MOVQ digests+0(FP), CX // digests *[][32]byte
 	MOVQ p_base+8(FP), SI  // p [][32]byte
-	MOVQ count+32(FP), DX  // count uint32
+	MOVL count+32(FP), DX  // count uint32
 	SHLQ $6, DX
 
 	LEAQ (SI)(DX*1), DI

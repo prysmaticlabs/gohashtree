@@ -1,10 +1,38 @@
+/*
+MIT License
+
+Copyright (c) 2021 Prysmatic Labs
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+This code is based on Intel's implementation found in
+	https://github.com/intel/intel-ipsec-mb
+Copied parts are
+	Copyright (c) 2012-2021, Intel Corporation
+*/
+
 #include "textflag.h"
 
 #define OUTPUT_PTR DI
 #define DATA_PTR SI
-#define count DX
+#define NUMBLKS DX
 #define TBL CX
-#define _DIGEST 32
 
 #define RAL AX
 #define RBL BX
@@ -211,20 +239,20 @@
 	ORL	y2, y0; \
 	ADDL	y0, h
 
-TEXT ·sha256_1_avx(SB), 0, $104-40
+TEXT ·Sha256_1_avx(SB), 0, $56-36
 	VMOVDQU		PSHUFFLE_BYTE_FLIP_MASK<>(SB), _BYTE_FLIP_MASK
 	VMOVDQU 	PSHUF_00BA<>(SB), _SHUF_00BA
 	VMOVDQU		PSHUF_DC00<>(SB), _SHUF_DC00 
 
 	MOVQ digests+0(FP), OUTPUT_PTR // digests *[][32]byte
 	MOVQ p_base+8(FP), DATA_PTR  // p [][32]byte
-	MOVQ num_blocks+32(FP), count  // count uint32
+	MOVL count+32(FP), NUMBLKS  // NUMBLKS uint32
 
-        SHLQ         $5, count
-        ADDQ         OUTPUT_PTR, count
+        SHLQ         $5, NUMBLKS
+        ADDQ         OUTPUT_PTR, NUMBLKS
 
 sha256_avx_1_loop:
-        CMPQ     OUTPUT_PTR, count
+        CMPQ     OUTPUT_PTR, NUMBLKS
         JEQ      sha256_1_avx_epilog
 
 	// load initial digest
@@ -341,14 +369,14 @@ sha256_avx_1_loop:
 	ADDL $0x5BE0CD19, RHL // H7 = h + H7
 
 
-	MOVL RAL, (0*4+_DIGEST)(SP)
-	MOVL RBL, (1*4+_DIGEST)(SP)
-	MOVL RCL, (2*4+_DIGEST)(SP)
-	MOVL RDL, (3*4+_DIGEST)(SP)
-	MOVL REL, (4*4+_DIGEST)(SP)
-	MOVL RFL, (5*4+_DIGEST)(SP)
-	MOVL RGL, (6*4+_DIGEST)(SP)
-	MOVL RHL, (7*4+_DIGEST)(SP)
+	MOVL RAL, tmpdig-(0*4)(SP)
+	MOVL RBL, tmpdig-(1*4)(SP)
+	MOVL RCL, tmpdig-(2*4)(SP)
+	MOVL RDL, tmpdig-(3*4)(SP)
+	MOVL REL, tmpdig-(4*4)(SP)
+	MOVL RFL, tmpdig-(5*4)(SP)
+	MOVL RGL, tmpdig-(6*4)(SP)
+	MOVL RHL, tmpdig-(7*4)(SP)
 
 	MOVQ	$PADDING<>(SB), TBL
 
@@ -439,14 +467,14 @@ sha256_avx_1_loop:
 
 	// add the previous digest
 
-	ADDL (_DIGEST + 0*4)(SP), RAL
-	ADDL (_DIGEST + 1*4)(SP), RBL
-	ADDL (_DIGEST + 2*4)(SP), RCL
-	ADDL (_DIGEST + 3*4)(SP), RDL
-	ADDL (_DIGEST + 4*4)(SP), REL
-	ADDL (_DIGEST + 5*4)(SP), RFL
-	ADDL (_DIGEST + 6*4)(SP), RGL
-	ADDL (_DIGEST + 7*4)(SP), RHL
+	ADDL tmpdig-(0*4)(SP), RAL
+	ADDL tmpdig-(1*4)(SP), RBL
+	ADDL tmpdig-(2*4)(SP), RCL
+	ADDL tmpdig-(3*4)(SP), RDL
+	ADDL tmpdig-(4*4)(SP), REL
+	ADDL tmpdig-(5*4)(SP), RFL
+	ADDL tmpdig-(6*4)(SP), RGL
+	ADDL tmpdig-(7*4)(SP), RHL
 
 	BSWAPL	RAL
 	BSWAPL	RBL
