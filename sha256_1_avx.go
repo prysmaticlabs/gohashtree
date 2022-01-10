@@ -24,8 +24,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
+
 package gohashtree
 
-//go:noescape
-
-func sha256_1_sse(digests *byte, p [][32]byte, count uint32)
+func sha256_1_avx(digests *byte, p [][32]byte, count uint32)

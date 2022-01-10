@@ -247,3 +247,12 @@ func TestSha256_1_sse(t *testing.T) {
 		t.Fail()
 	}
 }
+
+func TestSha256_1_avx(t *testing.T) {
+	digests := make([][32]byte, 32)
+	sha256_1_avx(&digests[0][0], _test_32_block, 32)
+	if !reflect.DeepEqual(digests, _test_32_digests) {
+		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests, digests)
+		t.Fail()
+	}
+}
