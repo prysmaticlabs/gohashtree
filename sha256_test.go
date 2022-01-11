@@ -248,7 +248,43 @@ func TestSha256_1_sse(t *testing.T) {
 	}
 }
 
-func TestSha256_1_avx(t *testing.T) {
+func TestSha256_1_block(t *testing.T) {
+	digests := make([][32]byte, 1)
+	Hash(&digests[0][0], _test_32_block, 1)
+	if !reflect.DeepEqual(digests, _test_32_digests[:1]) {
+		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests[:1], digests)
+		t.Fail()
+	}
+}
+
+func TestSha256_4_blocks(t *testing.T) {
+	digests := make([][32]byte, 4)
+	Hash(&digests[0][0], _test_32_block, 4)
+	if !reflect.DeepEqual(digests, _test_32_digests[:4]) {
+		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests[:4], digests)
+		t.Fail()
+	}
+}
+
+func TestSha256_8_blocks(t *testing.T) {
+	digests := make([][32]byte, 8)
+	Hash(&digests[0][0], _test_32_block, 8)
+	if !reflect.DeepEqual(digests, _test_32_digests[:8]) {
+		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests[:8], digests)
+		t.Fail()
+	}
+}
+
+func TestSha256_16_blocks(t *testing.T) {
+	digests := make([][32]byte, 16)
+	Hash(&digests[0][0], _test_32_block, 16)
+	if !reflect.DeepEqual(digests, _test_32_digests[:16]) {
+		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests[:16], digests)
+		t.Fail()
+	}
+}
+
+func TestSha256_32_blocks(t *testing.T) {
 	digests := make([][32]byte, 32)
 	Hash(&digests[0][0], _test_32_block, 32)
 	if !reflect.DeepEqual(digests, _test_32_digests) {
@@ -257,11 +293,11 @@ func TestSha256_1_avx(t *testing.T) {
 	}
 }
 
-func TestSha256_8_avx2(t *testing.T) {
-	digests := make([][32]byte, 32)
-	Hash(&digests[0][0], _test_32_block, 32)
-	if !reflect.DeepEqual(digests, _test_32_digests) {
-		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests, digests)
+func TestSha256_31_blocks(t *testing.T) {
+	digests := make([][32]byte, 31)
+	Hash(&digests[0][0], _test_32_block, 31)
+	if !reflect.DeepEqual(digests, _test_32_digests[:31]) {
+		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests[:31], digests)
 		t.Fail()
 	}
 }

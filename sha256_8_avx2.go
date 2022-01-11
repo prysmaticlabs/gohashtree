@@ -27,9 +27,10 @@ SOFTWARE.
 package gohashtree
 
 import (
-	"golang.org/x/sys/cpu"
+	"github.com/klauspost/cpuid/v2"
 )
 
-var hasAVX2 = cpu.X86.HasAVX2 && cpu.X86.HasBMI2
+var hasAVX2 = cpuid.CPU.Supports(cpuid.AVX2, cpuid.BMI2)
+var hasShani = cpuid.CPU.Supports(cpuid.SHA, cpuid.SSSE3, cpuid.SSE4)
 
 func Hash(digests *byte, p [][32]byte, count uint32)
