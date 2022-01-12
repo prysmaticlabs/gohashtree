@@ -29,6 +29,17 @@ import (
 	"math/bits"
 )
 
+const (
+	init0 = uint32(0x6A09E667)
+	init1 = uint32(0xBB67AE85)
+	init2 = uint32(0x3C6EF372)
+	init3 = uint32(0xA54FF53A)
+	init4 = uint32(0x510E527F)
+	init5 = uint32(0x9B05688C)
+	init6 = uint32(0x1F83D9AB)
+	init7 = uint32(0x5BE0CD19)
+)
+
 var _P = []uint32{
 	0xc28a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5,
 	0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5,
