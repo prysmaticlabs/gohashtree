@@ -26,6 +26,8 @@ package gohashtree
 import (
 	"reflect"
 	"testing"
+
+	"github.com/minio/sha256-simd"
 )
 
 var _test_32_block = [][32]byte{
@@ -293,11 +295,116 @@ func TestSha256_31_blocks(t *testing.T) {
 	}
 }
 
-func BenchmarkSha256_1_avx(b *testing.B) {
+func OldHash(data []byte) [32]byte {
+	h := sha256.New()
+	h.Reset()
+	var b [32]byte
+	h.Write(data)
+	h.Sum(b[:0])
+	return b
+}
+
+func BenchmarkHash_1_minio(b *testing.B) {
+	chunks := [64]byte{'A'}
+	digests := make([][32]byte, 1)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		digests[0] = OldHash(chunks[:])
+	}
+}
+
+func BenchmarkHash_1(b *testing.B) {
 	chunks := make([][32]byte, 2)
 	digests := make([][32]byte, 1)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		Hash(&digests[0][0], chunks, 1)
+	}
+}
+
+func BenchmarkHash_4_minio(b *testing.B) {
+	chunks := [64 * 4]byte{'A'}
+	digests := make([][32]byte, 4)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for j := 0; j < 4; j++ {
+			digests[j] = OldHash(chunks[j*64 : j*64+64])
+		}
+	}
+}
+
+func BenchmarkHash_4(b *testing.B) {
+	chunks := make([][32]byte, 8)
+	digests := make([][32]byte, 4)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Hash(&digests[0][0], chunks, 4)
+	}
+}
+
+func BenchmarkHash_8_minio(b *testing.B) {
+	chunks := [64 * 8]byte{'A'}
+	digests := make([][32]byte, 8)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for j := 0; j < 8; j++ {
+			digests[j] = OldHash(chunks[j*64 : j*64+64])
+		}
+	}
+}
+
+func BenchmarkHash_8(b *testing.B) {
+	chunks := make([][32]byte, 16)
+	digests := make([][32]byte, 8)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Hash(&digests[0][0], chunks, 8)
+	}
+}
+
+func BenchmarkHash_16_minio(b *testing.B) {
+	chunks := [64 * 16]byte{'A'}
+	digests := make([][32]byte, 16)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for j := 0; j < 16; j++ {
+			digests[j] = OldHash(chunks[j*64 : j*64+64])
+		}
+	}
+}
+
+func BenchmarkHash_16(b *testing.B) {
+	chunks := make([][32]byte, 32)
+	digests := make([][32]byte, 16)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Hash(&digests[0][0], chunks, 16)
+	}
+}
+
+func BenchmarkHashLargeList_minio(b *testing.B) {
+	balances := make([][32]byte, 400000)
+	for i := 0; i < len(balances); i++ {
+		balances[i] = [32]byte{'A'}
+	}
+	digests := make([][32]byte, 200000)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		for j := 1; j < 200000; j++ {
+			batchedRT := append(balances[2*j][:], balances[2*j+1][:]...)
+			digests[j] = OldHash(batchedRT)
+		}
+	}
+}
+
+func BenchmarkHashList(b *testing.B) {
+	balances := make([][32]byte, 400000)
+	for i := 0; i < len(balances); i++ {
+		balances[i] = [32]byte{'A'}
+	}
+	digests := make([][32]byte, 200000)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Hash(&digests[0][0], balances, 200000)
 	}
 }
