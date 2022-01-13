@@ -244,7 +244,7 @@ Copied parts are
 		    one_round(G, H, A, B, C, D, E, F, ptr, offset + 8); \
 		    one_round(F, G, H, A, B, C, D, E, ptr, offset + 12)
 
-// Defiitions for ASIMD version
+// Definitions for ASIMD version
 #define digest2              R6
 #define post64               R7
 #define postminus176         R9
@@ -258,10 +258,10 @@ Copied parts are
 #define MQ2                  F17
 #define MQ3                  F18
 #define MQ4                  F19
-#define VR1		     V24
-#define VR2		     V25
-#define VR3		     V26
-#define VR4		     V27
+#define NVR1		     V24
+#define NVR2		     V25
+#define NVR3		     V26
+#define NVR4		     V27
 #define QR2		     F25
 #define QR4		     F27
 #define TV1		     V28
@@ -277,180 +277,318 @@ Copied parts are
 #define TQ6                  F21
 #define TQ7		     F22
 
-#define round_4(A, B, C, D, E, F, G, H, MV, MQ, offset) \
-                    ushr                T1.4s, \E\().4s, #6
-                    shl                 T2.4s, \E\().4s, #(32-6)
-                    ushr                VR2.4s, \E\().4s, #11
-                    shl                 VR1.4s, \E\().4s, #(32-11)
-                    and                 T3.16b, \E\().16b, \F\().16b
-                    bic                 T4.16b, \G\().16b, \E\().16b
-                    orr                 T1.16b, T1.16b, T2.16b  // ROTR^6(E)
-                    ushr                T2.4s, \E\().4s, #25
-                    ldr                 QR4, [k256, #.Loffset]
-                    shl                 VR3.4s, \E\().4s, #(32-25)
-                    orr                 VR1.16b, VR2.16b, VR1.16b // ROTR^11(E)
-                    eor                 T3.16b, T3.16b, T4.16b  // CH(E,F,G)
-                    orr                 T2.16b, T2.16b, VR3.16b // ROTR^25(E)
-                    eor                 VR3.16b, \A\().16b, \C\().16b
-                    eor                 T1.16b, T1.16b, VR1.16b
-                    add                 T4.4s, \MV\().4s, VR4.4s // W + K
-                    add                 \H\().4s, \H\().4s, T3.4s
-                    ushr                T3.4s, \A\().4s, #2
-                    and                 VR3.16b, VR3.16b, \B\().16b
-                    shl                 VR4.4s, \A\().4s, #(32-2)
-                    eor                 T1.16b, T1.16b, T2.16b // Sigma1
-                    ushr                T2.4s, \A\().4s, #13
-                    shl                 VR1.4s, \A\().4s, #(32-13)
-                    add                 \H\().4s, \H\().4s, T4.4s
-                    orr                 T3.16b, T3.16b, VR4.16b // ROTR^2(A)
-                    and                 VR4.16b, \A\().16b, \C\().16b
-                    ushr                T4.4s, \A\().4s, #22
-                    shl                 VR2.4s, \A\().4s, #(32 - 22)
-                    orr                 T2.16b, T2.16b, VR1.16b     // ROTR^13(A)
-                    add                 \H\().4s, \H\().4s, T1.4s
-                    eor                 VR3.16b, VR3.16b, VR4.16b   // MAJ(A,B,C)
-                    orr                 T4.16b, T4.16b, VR2.16b     // ROTR^22(A)
-                    eor                 T2.16b, T2.16b, T3.16b
-                    add                 \D\().4s, \D\().4s, \H\().4s
-                    add                 \H\().4s, \H\().4s, VR3.4s
-                    eor                 T2.16b, T2.16b, T4.16b     // Sigma0
-                    str                 \MQ, [sp, #.Loffset]
-                    add                 \H\().4s, \H\().4s, T2.4s 
+#define round_4(A, B, C, D, E, F, G, H, MV, MQ, bicword, offset) \
+	VUSHR	$6, E.S4, TV1.S4; \
+	VSHL	$(32-6), E.S4, TV2.S4; \
+	VUSHR	$11, E.S4, NVR2.S4; \
+	VSHL	$(32-11), E.S4, NVR1.S4; \
+	VAND	F.B16, E.B16, TV3.B16; \
+	WORD	bicword; \
+	VORR	TV2.B16, TV1.B16, TV1.B16; \
+	VUSHR	$25, E.S4, TV2.S4; \
+	FMOVQ	offset(k256), QR4; \
+	VSHL	$(32-25), E.S4, NVR3.S4; \
+	VORR	NVR1.B16, NVR2.B16, NVR1.B16; \
+	VEOR	TV4.B16, TV3.B16, TV3.B16; \
+	VORR	NVR3.B16, TV2.B16, TV2.B16; \
+	VEOR	C.B16, A.B16, NVR3.B16; \
+	VEOR	NVR1.B16, TV1.B16, TV1.B16; \
+	VADD	NVR4.S4, MV.S4, TV4.S4; \
+	VADD	TV3.S4, H.S4, H.S4; \
+	VUSHR	$2, A.S4, TV3.S4; \
+	VAND	B.B16, NVR3.B16, NVR3.B16; \
+	VSHL	$(32-2), A.S4, NVR4.S4; \
+	VEOR	TV2.B16, TV1.B16, TV1.B16; \
+	VUSHR	$13, A.S4, TV2.S4; \
+	VSHL	$(32-13), A.S4, NVR1.S4; \
+	VADD	TV4.S4, H.S4, H.S4; \
+	VORR	NVR4.B16, TV3.B16, TV3.B16; \
+	VAND	C.B16, A.B16, NVR4.B16; \
+	VUSHR	$22, A.S4, TV4.S4; \
+	VSHL	$(32 - 22), A.S4, NVR2.S4 ; \
+	VORR	NVR1.B16, TV2.B16, TV2.B16; \
+	VADD	TV1.S4, H.S4, H.S4; \
+	VEOR	NVR4.B16, NVR3.B16, NVR3.B16; \
+	VORR	NVR2.B16, TV4.B16, TV4.B16; \
+	VEOR	TV3.B16, TV2.B16, TV2.B16; \
+	VADD	H.S4, D.S4, D.S4; \
+	VADD	NVR3.S4, H.S4, H.S4; \
+	VEOR	TV4.B16, TV2.B16, TV2.B16; \
+	FMOVQ	MQ, offset(RSP); \
+	VADD	TV2.S4, H.S4, H.S4
+
+#define eight_4_roundsA(A, B, C, D, E, F, G, H, MV1, MV2, MV3, MV4, MQ1, MQ2, MQ3, MQ4, offset) \
+                    round_4(A, B, C, D, E, F, G, H, MV1, MQ1, $0x4e641cdf, offset); \
+                    round_4(H, A, B, C, D, E, F, G, MV2, MQ2, $0x4e631cbf, offset + 16); \
+                    round_4(G, H, A, B, C, D, E, F, MV3, MQ3, $0x4e621c9f, offset + 32); \ 
+                    round_4(F, G, H, A, B, C, D, E, MV4, MQ4, $0x4e611c7f, offset + 48)
+
+#define eight_4_roundsB(A, B, C, D, E, F, G, H, MV1, MV2, MV3, MV4, MQ1, MQ2, MQ3, MQ4, offset) \
+                    round_4(A, B, C, D, E, F, G, H, MV1, MQ1, $0x4e601c5f, offset); \
+                    round_4(H, A, B, C, D, E, F, G, MV2, MQ2, $0x4e671c3f, offset + 16); \
+                    round_4(G, H, A, B, C, D, E, F, MV3, MQ3, $0x4e661c1f, offset + 32); \ 
+                    round_4(F, G, H, A, B, C, D, E, MV4, MQ4, $0x4e651cff, offset + 48)
+
+#define round_4_and_sched(A, B, C, D, E, F, G, H, bicword, offset) \
+	FLDPQ	(offset-256)(RSP), (TQ6, TQ5); \
+	VUSHR	$6, E.S4, TV1.S4; \
+	VSHL	$(32-6), E.S4, TV2.S4; \
+	VUSHR	$11, E.S4, NVR2.S4; \
+	VSHL	$(32-11), E.S4, NVR1.S4; \
+	VAND	F.B16, E.B16, TV3.B16; \
+	WORD	bicword; \
+	VUSHR	$7, TV5.S4, M1.S4; \
+        FMOVQ   (offset-32)(RSP), TQ7; \
+	VSHL	$(32-7), TV5.S4, M2.S4; \
+	VORR	TV2.B16, TV1.B16, TV1.B16; \
+	VUSHR	$25, E.S4, TV2.S4; \
+	VSHL	$(32-25), E.S4, NVR3.S4; \
+	VORR	NVR1.B16, NVR2.B16, NVR1.B16; \
+	VEOR	TV4.B16, TV3.B16, TV3.B16; \
+	FMOVQ	offset(k256), QR4; \
+	VORR	M2.B16, M1.B16, M1.B16; \
+	VUSHR	$17, TV7.S4, M3.S4; \
+	VSHL	$(32-17), TV7.S4, M4.S4; \
+	VUSHR	$18, TV5.S4, M2.S4; \
+	VSHL	$(32-18), TV5.S4, TV8.S4; \
+	VORR	NVR3.B16, TV2.B16, TV2.B16; \
+	VEOR	C.B16, A.B16, NVR3.B16; \
+	VORR	M4.B16, M3.B16, M3.B16; \
+        FMOVQ	(offset-112)(RSP), TQ4; \
+	VUSHR	$19, TV7.S4, M4.S4; \
+	VSHL	$(32-19), TV7.S4, NVR2.S4; \
+	VORR	TV8.B16, M2.B16, M2.B16; \
+	VUSHR	$3, TV5.S4, TV8.S4; \
+	VORR	NVR2.B16, M4.B16, M4.B16; \
+	VEOR	NVR1.B16, TV1.B16, TV1.B16; \
+	VEOR	M2.B16, M1.B16, M1.B16; \
+	VUSHR	$10, TV7.S4, M2.S4; \
+	VEOR	M4.B16, M3.B16, M3.B16; \
+	VADD	TV3.S4, H.S4, H.S4; \
+	VEOR	TV8.B16, M1.B16, M1.B16; \
+	VADD	TV4.S4, TV6.S4, TV6.S4; \
+	VEOR	M2.B16, M3.B16, M3.B16; \
+	VUSHR	$2, A.S4, TV3.S4; \
+	VAND	B.B16, NVR3.B16, NVR3.B16; \
+	VADD	TV6.S4, M1.S4, M1.S4; \
+	VSHL	$(32-2), A.S4, TV6.S4; \
+	VEOR	TV2.B16, TV1.B16, TV1.B16; \
+	VUSHR	$13, A.S4, TV2.S4; \
+	VADD	M3.S4, M1.S4, M1.S4; \
+	VADD	TV1.S4, H.S4, H.S4; \
+	VSHL	$(32-13), A.S4, NVR1.S4; \
+	VORR	TV6.B16, TV3.B16, TV3.B16; \
+	VADD	NVR4.S4, M1.S4, TV5.S4; \
+	FMOVQ	MQ1, offset(RSP); \
+	VAND	C.B16, A.B16, NVR4.B16; \
+	VUSHR	$22, A.S4, TV4.S4; \
+        VSHL    $(32-22), A.S4, NVR2.S4; \
+	VADD	TV5.S4, H.S4, H.S4; \
+	VORR	NVR1.B16, TV2.B16, TV2.B16; \
+	VEOR	NVR4.B16, NVR3.B16, NVR3.B16; \
+	VORR	NVR2.B16, TV4.B16, TV4.B16; \
+	VEOR	TV3.B16, TV2.B16, TV2.B16; \
+	VADD	H.S4, D.S4, D.S4; \
+	VADD	NVR3.S4, H.S4, H.S4; \
+	VEOR	TV4.B16, TV2.B16, TV2.B16; \
+	VADD	TV2.S4, H.S4, H.S4
+
+#define eight_4_rounds_and_sched(A, B, C, D, E, F, G, H, offset) \
+                    round_4_and_sched(A, B, C, D, E, F, G, H, $0x4e641cdf, offset + 0*16); \
+                    round_4_and_sched(H, A, B, C, D, E, F, G, $0x4e631cbf, offset + 1*16); \
+                    round_4_and_sched(G, H, A, B, C, D, E, F, $0x4e621c9f, offset + 2*16); \
+                    round_4_and_sched(F, G, H, A, B, C, D, E, $0x4e611c7f, offset + 3*16); \
+                    round_4_and_sched(E, F, G, H, A, B, C, D, $0x4e601c5f, offset + 4*16); \
+                    round_4_and_sched(D, E, F, G, H, A, B, C, $0x4e671c3f, offset + 5*16); \
+                    round_4_and_sched(C, D, E, F, G, H, A, B, $0x4e661c1f, offset + 6*16); \
+                    round_4_and_sched(B, C, D, E, F, G, H, A, $0x4e651cff, offset + 7*16)
+
+#define round_4_padding(A, B, C, D, E, F, G, H, bicword, offset) \
+	VUSHR	$6, E.S4, TV1.S4; \
+	VSHL	$(32-6), E.S4, TV2.S4; \
+	VUSHR	$11, E.S4, NVR2.S4; \
+	VSHL	$(32-11), E.S4, NVR1.S4; \
+	VAND	F.B16, E.B16, TV3.B16; \
+	WORD	bicword; \
+	VORR	TV2.B16, TV1.B16, TV1.B16; \
+	VUSHR	$25, E.S4, TV2.S4; \
+	VSHL	$(32-25), E.S4, NVR3.S4; \
+	VORR	NVR1.B16, NVR2.B16, NVR1.B16; \
+	VEOR	TV4.B16, TV3.B16, TV3.B16; \
+	VORR	NVR3.B16, TV2.B16, TV2.B16; \
+	VEOR	C.B16, A.B16, NVR3.B16; \
+	VEOR	NVR1.B16, TV1.B16, TV1.B16; \
+	VADD	TV3.S4, H.S4, H.S4; \
+	VUSHR	$2, A.S4, TV3.S4; \
+	FMOVQ	offset(padding), QR2; \
+	VAND	B.B16, NVR3.B16, NVR3.B16; \
+	VSHL	$(32-2), A.S4, NVR4.S4; \
+	VEOR	TV2.B16, TV1.B16, TV1.B16; \
+	VUSHR	$13, A.S4, TV2.S4; \
+	VSHL	$(32-13), A.S4, NVR1.S4; \
+	VADD	NVR2.S4, H.S4, H.S4; \
+	VORR	NVR4.B16, TV3.B16, TV3.B16; \
+	VAND	C.B16, A.B16, NVR4.B16; \
+	VUSHR	$22, A.S4, TV4.S4; \
+        VSHL	$(32-22), A.S4, NVR2.S4; \
+	VORR	NVR1.B16, TV2.B16, TV2.B16; \
+	VADD	TV1.S4, H.S4, H.S4; \
+	VEOR	NVR4.B16, NVR3.B16, NVR3.B16; \
+	VORR	NVR2.B16, TV4.B16, TV4.B16; \
+	VEOR	TV3.B16, TV2.B16, TV2.B16; \
+	VADD	H.S4, D.S4, D.S4; \
+	VADD	NVR3.S4, H.S4, H.S4; \
+	VEOR	TV4.B16, TV2.B16, TV2.B16; \
+	VADD	TV2.S4, H.S4, H.S4
+
+#define eight_4_rounds_padding(A, B, C, D, E, F, G, H, offset) \
+                    round_4_padding(A, B, C, D, E, F, G, H, $0x4e641cdf, offset + 0*16); \
+                    round_4_padding(H, A, B, C, D, E, F, G, $0x4e631cbf, offset + 1*16); \
+                    round_4_padding(G, H, A, B, C, D, E, F, $0x4e621c9f, offset + 2*16); \
+                    round_4_padding(F, G, H, A, B, C, D, E, $0x4e611c7f, offset + 3*16); \
+                    round_4_padding(E, F, G, H, A, B, C, D, $0x4e601c5f, offset + 4*16); \
+                    round_4_padding(D, E, F, G, H, A, B, C, $0x4e671c3f, offset + 5*16); \
+                    round_4_padding(C, D, E, F, G, H, A, B, $0x4e661c1f, offset + 6*16); \
+                    round_4_padding(B, C, D, E, F, G, H, A, $0x4e651cff, offset + 7*16)
 
 
-#define four_4_rounds(A, B, C, D, E, F, G, H, MV1, MV2, MV3, MV4, MQ1, MQ2, MQ3, MQ4, offset) \
-                    round               \A, \B, \C, \D, \E, \F, \G, \H, \MV1, \MQ1
-                    round               \H, \A, \B, \C, \D, \E, \F, \G, \MV2, \MQ2
-                    round               \G, \H, \A, \B, \C, \D, \E, \F, \MV3, \MQ3
-                    round               \F, \G, \H, \A, \B, \C, \D, \E, \MV4, \MQ4
- 
-#define round_4_and_sched(A, B, C, D, E, F, G, H, offset) \
-                        ldp             TQ6, TQ5, [sp, #(.Loffset-256)]     // W16, W15
-                    ushr                T1.4s, \E\().4s, #6
-                    shl                 T2.4s, \E\().4s, #(32-6)
-                    ushr                VR2.4s, \E\().4s, #11
-                    shl                 VR1.4s, \E\().4s, #(32-11)
-                    and                 T3.16b, \E\().16b, \F\().16b
-                    bic                 T4.16b, \G\().16b, \E\().16b
-                        ushr            M1.4s, T5.4s, #7
-                        ldr             TQ7, [sp, #(.Loffset - 32)]         // W2
-                        shl             M2.4s, T5.4s, #(32-7)
-                    orr                 T1.16b, T1.16b, T2.16b  // ROTR^6(E)
-                    ushr                T2.4s, \E\().4s, #25
-                    shl                 VR3.4s, \E\().4s, #(32-25)
-                    orr                 VR1.16b, VR2.16b, VR1.16b // ROTR^11(E)
-                    eor                 T3.16b, T3.16b, T4.16b  // CH(E,F,G)
-                    ldr                 QR4, [k256, #.Loffset]
-
-                       orr              M1.16b, M1.16b, M2.16b  // ROTR7(W15)
-                       ushr             M3.4s, T7.4s, #17
-                       shl              M4.4s, T7.4s, #(32-17)
-                       ushr             M2.4s, T5.4s, #18
-                       shl              T8.4s, T5.4s, #(32-18)
-
-                    orr                 T2.16b, T2.16b, VR3.16b // ROTR^25(E)
-                    eor                 VR3.16b, \A\().16b, \C\().16b
-                        orr             M3.16b, M3.16b, M4.16b  // ROTR^17(W2)
-                        ldr             TQ4, [sp, #(.Loffset - 112)]        // W7
-                        ushr            M4.4s, T7.4s, #19
-                        shl             VR2.4s, T7.4s, #(32-19) 
-                        orr             M2.16b, M2.16b, T8.16b // ROTR^18(W15)
-                        ushr            T8.4s, T5.4s, #3
-                        orr             M4.16b, M4.16b, VR2.16b // ROTR^19(W2)
-                         
-                    eor                 T1.16b, T1.16b, VR1.16b
-                        eor             M1.16b, M1.16b, M2.16b
-                        ushr            M2.4s, T7.4s, #10
-                        eor             M3.16b, M3.16b, M4.16b 
-                    add                 \H\().4s, \H\().4s, T3.4s
-                        eor             M1.16b, M1.16b, T8.16b // sigma0
-                        add             T6.4s, T6.4s, T4.4s    // W7 + W16
-                        eor             M3.16b, M3.16b, M2.16b // sigma1
-                        
-
-                    ushr                T3.4s, \A\().4s, #2
-                    and                 VR3.16b, VR3.16b, \B\().16b
-                        add             M1.4s, M1.4s, T6.4s
-                    shl                 T6.4s, \A\().4s, #(32-2)
-                    eor                 T1.16b, T1.16b, T2.16b // Sigma1
-                    ushr                T2.4s, \A\().4s, #13
-                        add             M1.4s, M1.4s, M3.4s    // W0
-                    add                 \H\().4s, \H\().4s, T1.4s
-                    shl                 VR1.4s, \A\().4s, #(32-13)
-                    orr                 T3.16b, T3.16b, T6.16b // ROTR^2(A)
-                    add                 T5.4s, M1.4s, VR4.4s // W + K
-                        str             MQ1, [sp, #.Loffset]
-                    and                 VR4.16b, \A\().16b, \C\().16b
-                    ushr                T4.4s, \A\().4s, #22
-                    shl                 VR2.4s, \A\().4s, #(32 - 22)
-                    add                 \H\().4s, \H\().4s, T5.4s
-                    orr                 T2.16b, T2.16b, VR1.16b     // ROTR^13(A)
-                    eor                 VR3.16b, VR3.16b, VR4.16b   // MAJ(A,B,C)
-                    orr                 T4.16b, T4.16b, VR2.16b     // ROTR^22(A)
-                    eor                 T2.16b, T2.16b, T3.16b
-                    add                 \D\().4s, \D\().4s, \H\().4s
-                    add                 \H\().4s, \H\().4s, VR3.4s
-                    eor                 T2.16b, T2.16b, T4.16b     // Sigma0
-                    add                 \H\().4s, \H\().4s, T2.4s 
-
-
-#define four_4_rounds_and_sched(A, B, C, D, E, F, G, H, offset) \
-                    round_and_sched      \A, \B, \C, \D, \E, \F, \G, \H
-                    round_and_sched      \H, \A, \B, \C, \D, \E, \F, \G
-                    round_and_sched      \G, \H, \A, \B, \C, \D, \E, \F
-                    round_and_sched      \F, \G, \H, \A, \B, \C, \D, \E
-
-#define round_4_padding(A, B, C, D, E, F, G, H, offset) \
-                    ushr                T1.4s, \E\().4s, #6
-                    shl                 T2.4s, \E\().4s, #(32-6)
-                    ushr                VR2.4s, \E\().4s, #11
-                    shl                 VR1.4s, \E\().4s, #(32-11)
-                    and                 T3.16b, \E\().16b, \F\().16b
-                    bic                 T4.16b, \G\().16b, \E\().16b
-                    orr                 T1.16b, T1.16b, T2.16b  // ROTR^6(E)
-                    ushr                T2.4s, \E\().4s, #25
-                    shl                 VR3.4s, \E\().4s, #(32-25)
-                    orr                 VR1.16b, VR2.16b, VR1.16b // ROTR^11(E)
-                    eor                 T3.16b, T3.16b, T4.16b  // CH(E,F,G)
-                    orr                 T2.16b, T2.16b, VR3.16b // ROTR^25(E)
-                    eor                 VR3.16b, \A\().16b, \C\().16b
-                    eor                 T1.16b, T1.16b, VR1.16b
-                    add                 \H\().4s, \H\().4s, T3.4s
-                    ushr                T3.4s, \A\().4s, #2
-                    ldr                 QR2, [padding, #.Loffset]
-                    and                 VR3.16b, VR3.16b, \B\().16b
-                    shl                 VR4.4s, \A\().4s, #(32-2)
-                    eor                 T1.16b, T1.16b, T2.16b // Sigma1
-                    ushr                T2.4s, \A\().4s, #13
-                    shl                 VR1.4s, \A\().4s, #(32-13)
-                    add                 \H\().4s, \H\().4s, VR2.4s
-                    orr                 T3.16b, T3.16b, VR4.16b // ROTR^2(A)
-                    and                 VR4.16b, \A\().16b, \C\().16b
-                    ushr                T4.4s, \A\().4s, #22
-                    shl                 VR2.4s, \A\().4s, #(32 - 22)
-                    orr                 T2.16b, T2.16b, VR1.16b     // ROTR^13(A)
-                    add                 \H\().4s, \H\().4s, T1.4s
-                    eor                 VR3.16b, VR3.16b, VR4.16b   // MAJ(A,B,C)
-                    orr                 T4.16b, T4.16b, VR2.16b     // ROTR^22(A)
-                    eor                 T2.16b, T2.16b, T3.16b
-                    add                 \D\().4s, \D\().4s, \H\().4s
-                    add                 \H\().4s, \H\().4s, VR3.4s
-                    eor                 T2.16b, T2.16b, T4.16b     // Sigma0
-                    add                 \H\().4s, \H\().4s, T2.4s 
-
-#define four_4_rounds_padding(A, B, C, D, E, F, G, H)
-                    round_padding   \A, \B, \C, \D, \E, \F, \G, \H
-                    round_padding   \H, \A, \B, \C, \D, \E, \F, \G
-                    round_padding   \G, \H, \A, \B, \C, \D, \E, \F
-                    round_padding   \F, \G, \H, \A, \B, \C, \D, \E
-.endm
- 
-
-
-TEXT ·Hash(SB), 0, $64-36
+TEXT ·Hash(SB), 0, $1024-36
 	MOVD digests+0(FP), OUTPUT_PTR
 	MOVD p_base+8(FP), DATA_PTR
 	MOVWU count+32(FP), NUM_BLKS
+
+arm_x4:
+	CMPW	$4, NUM_BLKS
+	BLO	arm_x1
+
+	MOVD	$_PADDING_4<>(SB), padding
+	MOVD	$_K256_4<>(SB), k256
+	MOVD	$_DIGEST_4<>(SB), digest
+	ADD	$64, digest, digest2
+	MOVD	$64, post64
+	MOVD	$32, post32
+	MOVD    $-80, postminus80
+	MOVD	$-176, postminus176
+
+arm_x4_loop:
+	CMPW	$4, NUM_BLKS
+	BLO	arm_x1
+	VLD1    (digest), [V0.S4, V1.S4, V2.S4, V3.S4]
+	VLD1	(digest2), [V4.S4, V5.S4, V6.S4, V7.S4]
+
+	// First 16 rounds
+	WORD   $0xde7a030
+	WORD   $0xde7b030
+	WORD   $0x4de7a030
+	WORD   $0x4de9b030
+	VREV32 M1.B16, M1.B16
+	VREV32 M2.B16, M2.B16
+	VREV32 M3.B16, M3.B16
+	VREV32 M4.B16, M4.B16
+	eight_4_roundsA(V0, V1, V2, V3, V4, V5, V6, V7, M1, M2, M3, M4, MQ1, MQ2, MQ3, MQ4, 0x00)
+
+	WORD   $0xde7a030
+	WORD   $0xde7b030
+	WORD   $0x4de7a030
+	WORD   $0x4de9b030
+	VREV32 M1.B16, M1.B16
+	VREV32 M2.B16, M2.B16
+	VREV32 M3.B16, M3.B16
+	VREV32 M4.B16, M4.B16
+	eight_4_roundsB(V4, V5, V6, V7, V0, V1, V2, V3, M1, M2, M3, M4, MQ1, MQ2, MQ3, MQ4, 0x40)
+
+	WORD   $0xde7a030
+	WORD   $0xde7b030
+	WORD   $0x4de7a030
+	WORD   $0x4de9b030
+	VREV32 M1.B16, M1.B16
+	VREV32 M2.B16, M2.B16
+	VREV32 M3.B16, M3.B16
+	VREV32 M4.B16, M4.B16
+	eight_4_roundsA(V0, V1, V2, V3, V4, V5, V6, V7, M1, M2, M3, M4, MQ1, MQ2, MQ3, MQ4, 0x80)
+
+	WORD   $0xde7a030
+	WORD   $0xde7b030
+	WORD   $0x4de7a030
+	WORD   $0x4de9b030
+	VREV32 M1.B16, M1.B16
+	VREV32 M2.B16, M2.B16
+	VREV32 M3.B16, M3.B16
+	VREV32 M4.B16, M4.B16
+	eight_4_roundsB(V4, V5, V6, V7, V0, V1, V2, V3, M1, M2, M3, M4, MQ1, MQ2, MQ3, MQ4, 0xc0)
+
+	eight_4_rounds_and_sched(V0, V1, V2, V3, V4, V5, V6, V7, 0x100)
+	eight_4_rounds_and_sched(V0, V1, V2, V3, V4, V5, V6, V7, 0x180)
+	eight_4_rounds_and_sched(V0, V1, V2, V3, V4, V5, V6, V7, 0x200)
+	eight_4_rounds_and_sched(V0, V1, V2, V3, V4, V5, V6, V7, 0x280)
+	eight_4_rounds_and_sched(V0, V1, V2, V3, V4, V5, V6, V7, 0x300)
+	eight_4_rounds_and_sched(V0, V1, V2, V3, V4, V5, V6, V7, 0x380)
+
+
+	// add previous digest
+	VLD1	(digest), [M1.S4, M2.S4, M3.S4, M4.S4]
+	VLD1	(digest2), [TV5.S4, TV6.S4, TV7.S4, TV8.S4]
+	VADD	M1.S4, V0.S4, V0.S4
+	VADD	M2.S4, V1.S4, V1.S4
+	VADD	M3.S4, V2.S4, V2.S4
+	VADD	M4.S4, V3.S4, V3.S4
+	VADD	TV5.S4, V4.S4, V4.S4
+	VADD	TV6.S4, V5.S4, V5.S4
+	VADD	TV7.S4, V6.S4, V6.S4
+	VADD	TV8.S4, V7.S4, V7.S4
+
+	// save state
+	VMOV	V0.B16, M1.B16
+	VMOV	V1.B16, M2.B16
+	VMOV	V2.B16, M3.B16
+	VMOV	V3.B16, M4.B16
+	VMOV	V4.B16, TV5.B16
+	VMOV	V5.B16, TV6.B16
+	VMOV	V6.B16, TV7.B16
+	VMOV	V7.B16, TV8.B16
+
+	// rounds with padding
+	eight_4_rounds_padding(V0, V1, V2, V3, V4, V5, V6, V7, 0x000)
+	eight_4_rounds_padding(V0, V1, V2, V3, V4, V5, V6, V7, 0x080)
+	eight_4_rounds_padding(V0, V1, V2, V3, V4, V5, V6, V7, 0x100)
+	eight_4_rounds_padding(V0, V1, V2, V3, V4, V5, V6, V7, 0x180)
+	eight_4_rounds_padding(V0, V1, V2, V3, V4, V5, V6, V7, 0x200)
+	eight_4_rounds_padding(V0, V1, V2, V3, V4, V5, V6, V7, 0x280)
+	eight_4_rounds_padding(V0, V1, V2, V3, V4, V5, V6, V7, 0x300)
+	eight_4_rounds_padding(V0, V1, V2, V3, V4, V5, V6, V7, 0x380)
+
+	// add previous digest
+	VADD	M1.S4, V0.S4, V0.S4
+	VADD	M2.S4, V1.S4, V1.S4
+	VADD	M3.S4, V2.S4, V2.S4
+	VADD	M4.S4, V3.S4, V3.S4
+	VADD	TV5.S4, V4.S4, V4.S4
+	VADD	TV6.S4, V5.S4, V5.S4
+	VADD	TV7.S4, V6.S4, V6.S4
+	VADD	TV8.S4, V7.S4, V7.S4
+
+	// change endianness transpose and store
+	VREV32               V0.B16, V0.B16
+	VREV32               V1.B16, V1.B16
+	VREV32               V2.B16, V2.B16
+	VREV32               V3.B16, V3.B16
+	VREV32               V4.B16, V4.B16
+	VREV32               V5.B16, V5.B16
+	VREV32               V6.B16, V6.B16
+	VREV32               V7.B16, V7.B16
+	
+	WORD $0xdaaa000
+	WORD $0xdaab000
+	WORD $0x4daaa000
+	WORD $0x4dabb000
+	WORD $0xdaaa004
+	WORD $0xdaab004
+	WORD $0x4daaa004
+	WORD $0x4dbfb004
+
+	ADD	$192, DATA_PTR, DATA_PTR
+	SUBW	$4, NUM_BLKS, NUM_BLKS
+	JMP	arm_x4_loop
 
 arm_x1:
 	VMOV	$0, VZ.S4	// Golang guarantees this is zero
@@ -758,23 +896,24 @@ DATA _DIGEST_1<>+24(SB)/4, $0x1f83d9ab
 DATA _DIGEST_1<>+28(SB)/4, $0x5be0cd19
 GLOBL _DIGEST_1<>(SB),(NOPTR+RODATA),$32
 
-DATA _DIGEST_4<>+0x00(SB)/8, $0x510e527f510e527f
-DATA _DIGEST_4<>+0x08(SB)/8, $0x510e527f510e527f
-DATA _DIGEST_4<>+0x10(SB)/8, $0x9b05688c9b05688c
-DATA _DIGEST_4<>+0x18(SB)/8, $0x9b05688c9b05688c
-DATA _DIGEST_4<>+0x20(SB)/8, $0x6a09e6676a09e667
-DATA _DIGEST_4<>+0x28(SB)/8, $0x6a09e6676a09e667
-DATA _DIGEST_4<>+0x30(SB)/8, $0xbb67ae85bb67ae85
-DATA _DIGEST_4<>+0x38(SB)/8, $0xbb67ae85bb67ae85
-DATA _DIGEST_4<>+0x40(SB)/8, $0x1f83d9ab1f83d9ab 
-DATA _DIGEST_4<>+0x48(SB)/8, $0x1f83d9ab1f83d9ab 
-DATA _DIGEST_4<>+0x50(SB)/8, $0x5be0cd195be0cd19
-DATA _DIGEST_4<>+0x58(SB)/8, $0x5be0cd195be0cd19
-DATA _DIGEST_4<>+0x60(SB)/8, $0x3c6ef3723c6ef372
-DATA _DIGEST_4<>+0x68(SB)/8, $0x3c6ef3723c6ef372
-DATA _DIGEST_4<>+0x70(SB)/8, $0xa54ff53aa54ff53a
-DATA _DIGEST_4<>+0x78(SB)/8, $0xa54ff53aa54ff53a
-GLOBL _DIGEST_4<>(SB),(NOPTR+RODATA),$0x80
+DATA _DIGEST_4<>+0(SB)/8, $0x6a09e6676a09e667
+DATA _DIGEST_4<>+8(SB)/8, $0x6a09e6676a09e667
+DATA _DIGEST_4<>+16(SB)/8, $0xbb67ae85bb67ae85
+DATA _DIGEST_4<>+24(SB)/8, $0xbb67ae85bb67ae85
+DATA _DIGEST_4<>+32(SB)/8, $0x3c6ef3723c6ef372
+DATA _DIGEST_4<>+40(SB)/8, $0x3c6ef3723c6ef372
+DATA _DIGEST_4<>+48(SB)/8, $0xa54ff53aa54ff53a
+DATA _DIGEST_4<>+56(SB)/8, $0xa54ff53aa54ff53a
+DATA _DIGEST_4<>+64(SB)/8, $0x510e527f510e527f
+DATA _DIGEST_4<>+72(SB)/8, $0x510e527f510e527f
+DATA _DIGEST_4<>+80(SB)/8, $0x9b05688c9b05688c
+DATA _DIGEST_4<>+88(SB)/8, $0x9b05688c9b05688c
+DATA _DIGEST_4<>+96(SB)/8, $0x1f83d9ab1f83d9ab
+DATA _DIGEST_4<>+104(SB)/8, $0x1f83d9ab1f83d9ab
+DATA _DIGEST_4<>+112(SB)/8, $0x5be0cd195be0cd19
+DATA _DIGEST_4<>+120(SB)/8, $0x5be0cd195be0cd19
+GLOBL _DIGEST_4<>(SB),(NOPTR+RODATA),$128
+
 
 DATA _PADDING_4<>+0(SB)/8, $0xc28a2f98c28a2f98
 DATA _PADDING_4<>+8(SB)/8, $0xc28a2f98c28a2f98
