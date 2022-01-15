@@ -23,4 +23,19 @@ SOFTWARE.
 */
 package gohashtree
 
-func Hash(digests *byte, p [][32]byte, count uint32)
+import (
+	"fmt"
+)
+
+func _hash(digests *byte, p [][32]byte, count uint32)
+
+func Hash(digests [][32]byte, chunks [][32]byte) error {
+	if len(chunks)%2 == 1 {
+		return fmt.Errorf("odd number of chunks")
+	}
+	if len(digests) < len(chunks)/2 {
+		return fmt.Errorf("not enough digest length, need at least %v, got %v", len(chunks)/2, len(digests))
+	}
+	_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
+	return nil
+}

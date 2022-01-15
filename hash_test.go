@@ -228,6 +228,74 @@ var _test_32_digests = [][32]byte{
 		0x82, 0x14, 0x07, 0xde, 0x46, 0x03, 0x25, 0x27, 0x4d, 0x09, 0x6b, 0x7e, 0xb9, 0x82, 0x98, 0x41},
 }
 
+func TestHash(t *testing.T) {
+	tests := []struct {
+		name  string
+		count uint32
+	}{
+		{
+			name:  "hash 1 block",
+			count: 1,
+		},
+		{
+			name:  "hash 4 blocks",
+			count: 4,
+		},
+		{
+			name:  "hash 8 blocks",
+			count: 8,
+		},
+		{
+			name:  "hash 16 blocks",
+			count: 16,
+		},
+		{
+			name:  "hash 32 blocks",
+			count: 32,
+		},
+		{
+			name:  "hash 31 blocks",
+			count: 31,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			digests := make([][32]byte, tt.count)
+			err := Hash(digests, _test_32_block[:2*tt.count])
+			if err != nil {
+				t.Log(err)
+				t.Fail()
+			}
+			if !reflect.DeepEqual(digests, _test_32_digests[:tt.count]) {
+				t.Logf("Digests are different\n Expected: %x\n Produced: %x\n",
+					_test_32_digests[:tt.count], digests)
+				t.Fail()
+			}
+		})
+	}
+}
+
+func TestOddChunks(t *testing.T) {
+	digests := make([][32]byte, 1)
+	chunks := make([][32]byte, 1)
+	err := Hash(digests, chunks)
+	if err.Error() != "odd number of chunks" {
+		t.Logf("expected error: \"odd number of chunks\", got: \"%s\"", err)
+		t.Fail()
+	}
+}
+
+func TestNotAllocatedDigest(t *testing.T) {
+	digests := make([][32]byte, 1)
+	chunks := make([][32]byte, 4)
+	err := Hash(digests, chunks)
+	expected := "not enough digest length, need at least 2, got 1"
+	if err.Error() != expected {
+		t.Logf("expected error: \"%s\", got: \"%s\"", expected, err)
+		t.Fail()
+	}
+}
+
 func TestSha256_1_generic(t *testing.T) {
 	digests := make([][32]byte, 32)
 	err := sha256_1_generic(&digests, _test_32_block, 32)
@@ -237,60 +305,6 @@ func TestSha256_1_generic(t *testing.T) {
 	}
 	if !reflect.DeepEqual(digests, _test_32_digests) {
 		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests, digests)
-		t.Fail()
-	}
-}
-
-func TestSha256_1_block(t *testing.T) {
-	digests := make([][32]byte, 1)
-	Hash(&digests[0][0], _test_32_block, 1)
-	if !reflect.DeepEqual(digests, _test_32_digests[:1]) {
-		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests[:1], digests)
-		t.Fail()
-	}
-}
-
-func TestSha256_4_blocks(t *testing.T) {
-	digests := make([][32]byte, 4)
-	Hash(&digests[0][0], _test_32_block, 4)
-	if !reflect.DeepEqual(digests, _test_32_digests[:4]) {
-		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests[:4], digests)
-		t.Fail()
-	}
-}
-
-func TestSha256_8_blocks(t *testing.T) {
-	digests := make([][32]byte, 8)
-	Hash(&digests[0][0], _test_32_block, 8)
-	if !reflect.DeepEqual(digests, _test_32_digests[:8]) {
-		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests[:8], digests)
-		t.Fail()
-	}
-}
-
-func TestSha256_16_blocks(t *testing.T) {
-	digests := make([][32]byte, 16)
-	Hash(&digests[0][0], _test_32_block, 16)
-	if !reflect.DeepEqual(digests, _test_32_digests[:16]) {
-		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests[:16], digests)
-		t.Fail()
-	}
-}
-
-func TestSha256_32_blocks(t *testing.T) {
-	digests := make([][32]byte, 32)
-	Hash(&digests[0][0], _test_32_block, 32)
-	if !reflect.DeepEqual(digests, _test_32_digests) {
-		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests, digests)
-		t.Fail()
-	}
-}
-
-func TestSha256_31_blocks(t *testing.T) {
-	digests := make([][32]byte, 31)
-	Hash(&digests[0][0], _test_32_block, 31)
-	if !reflect.DeepEqual(digests, _test_32_digests[:31]) {
-		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests[:31], digests)
 		t.Fail()
 	}
 }
@@ -318,7 +332,7 @@ func BenchmarkHash_1(b *testing.B) {
 	digests := make([][32]byte, 1)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Hash(&digests[0][0], chunks, 1)
+		Hash(digests, chunks)
 	}
 }
 
@@ -338,7 +352,7 @@ func BenchmarkHash_4(b *testing.B) {
 	digests := make([][32]byte, 4)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Hash(&digests[0][0], chunks, 4)
+		Hash(digests, chunks)
 	}
 }
 
@@ -358,7 +372,7 @@ func BenchmarkHash_8(b *testing.B) {
 	digests := make([][32]byte, 8)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Hash(&digests[0][0], chunks, 8)
+		Hash(digests, chunks)
 	}
 }
 
@@ -378,7 +392,7 @@ func BenchmarkHash_16(b *testing.B) {
 	digests := make([][32]byte, 16)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Hash(&digests[0][0], chunks, 16)
+		Hash(digests, chunks)
 	}
 }
 
@@ -405,6 +419,6 @@ func BenchmarkHashList(b *testing.B) {
 	digests := make([][32]byte, 200000)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Hash(&digests[0][0], balances, 200000)
+		Hash(digests, balances)
 	}
 }

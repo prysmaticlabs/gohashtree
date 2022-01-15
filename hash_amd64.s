@@ -772,7 +772,7 @@ Copied parts are
 
 
 
-TEXT ·Hash(SB), 0, $928-36
+TEXT ·_hash(SB), 0, $928-36
 	CMPB ·hasShani(SB), $1
 	JE shani
 

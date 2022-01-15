@@ -459,7 +459,7 @@ Copied parts are
 	SHA256H2	word, V8, V3; \
 	VMOV	V2.B16, V8.B16
 
-TEXT ·Hash(SB), 0, $1024-36
+TEXT ·_hash(SB), 0, $1024-36
 	MOVD digests+0(FP), OUTPUT_PTR
 	MOVD p_base+8(FP), DATA_PTR
 	MOVWU count+32(FP), NUM_BLKS
