@@ -39,3 +39,7 @@ func Hash(digests [][32]byte, chunks [][32]byte) error {
 	_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
 	return nil
 }
+
+func HashChunks(digests [][32]byte, chunks [][32]byte) {
+	_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
+}
