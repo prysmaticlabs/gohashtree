@@ -44,18 +44,20 @@ func FuzzHash_Differential_Minio(f *testing.F) {
 		f.Add(d)
 	}
 	f.Fuzz(func(t *testing.T, chunksRaw []byte) {
-		if len(chunksRaw) != 64 {
-			return // test a single digest of 2 chunks only.
+		if len(chunksRaw) < 64 || len(chunksRaw)%64 != 0 {
+			return // No chunks and odd number of chunks are invalid
 		}
 		chunks := convertRawChunks(chunksRaw)
 		digests := make([][32]byte, len(chunks)/2)
 		if err := gohashtree.Hash(digests, chunks); err != nil {
 			t.Fatal(err)
 		}
-		a := OldHash(chunksRaw)
-		b := digests[0]
-		if a != b {
-			t.Error("minio.Hash() != gohashtree.Hash()")
+		for i := 64; i <= len(chunksRaw); i += 64 {
+			a := OldHash(chunksRaw[i-64 : i])
+			b := digests[(i/64)-1]
+			if a != b {
+				t.Error("minio.Hash() != gohashtree.Hash()")
+			}
 		}
 	})
 }
