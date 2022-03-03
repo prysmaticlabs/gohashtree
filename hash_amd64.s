@@ -1600,7 +1600,7 @@ avx512:
 
 avx512_loop:
 	CMPL	NUM_BLKS, $16
-	JB	avx2
+	JB	sha256_8_avx2_loop
 
 	// Load digest
 	VMOVDQU32 (0*64)(DIGESTAVX512), Z0
