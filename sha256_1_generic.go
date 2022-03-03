@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2021 Prysmatic Labs
+Copyright (c) 2021-2022 Prysmatic Labs
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,6 @@ package gohashtree
 
 import (
 	"encoding/binary"
-	"errors"
 	"math/bits"
 )
 
@@ -126,12 +125,9 @@ var _K = []uint32{
 	0xc67178f2,
 }
 
-func sha256_1_generic(digests *[][32]byte, p [][32]byte, count uint32) error {
-	if uint32(len(*digests)) < count || uint32(len(p)) < 2*count {
-		return errors.New("data incompatible with count")
-	}
+func sha256_1_generic(digests [][32]byte, p [][32]byte) {
 	var w [16]uint32
-	for k := uint32(0); k < count; k++ {
+	for k := 0; k < len(p)/2; k++ {
 		// First 16 rounds
 		a, b, c, d, e, f, g, h := init0, init1, init2, init3, init4, init5, init6, init7
 		for i := 0; i < 8; i++ {
@@ -230,7 +226,6 @@ func sha256_1_generic(digests *[][32]byte, p [][32]byte, count uint32) error {
 		binary.BigEndian.PutUint32(dig[20:24], h5)
 		binary.BigEndian.PutUint32(dig[24:28], h6)
 		binary.BigEndian.PutUint32(dig[28:32], h7)
-		(*digests)[k] = dig
+		(digests)[k] = dig
 	}
-	return nil
 }

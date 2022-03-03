@@ -40,7 +40,11 @@ func Hash(digests [][32]byte, chunks [][32]byte) error {
 	if len(digests) < len(chunks)/2 {
 		return fmt.Errorf("not enough digest length, need at least %v, got %v", len(chunks)/2, len(digests))
 	}
-	_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
+	if supportedCPU {
+		_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
+	} else {
+		sha256_1_generic(digests, chunks)
+	}
 	return nil
 }
 

@@ -21,14 +21,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-package gohashtree_test
+package gohashtree
 
 import (
 	"reflect"
 	"testing"
 
 	"github.com/minio/sha256-simd"
-	"github.com/prysmaticlabs/gohashtree"
 )
 
 var _test_32_block = [][32]byte{
@@ -174,12 +173,23 @@ func TestHash(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			digests := make([][32]byte, tt.count)
-			err := gohashtree.Hash(digests, _test_32_block[:2*tt.count])
+			err := Hash(digests, _test_32_block[:2*tt.count])
 			if err != nil {
 				t.Log(err)
 				t.Fail()
 			}
 			if !reflect.DeepEqual(digests, _test_32_digests[:tt.count]) {
+				t.Logf("Digests are different\n Expected: %x\n Produced: %x\n",
+					_test_32_digests[:tt.count], digests)
+				t.Fail()
+			}
+			digests2 := make([][32]byte, tt.count)
+			sha256_1_generic(digests2, _test_32_block[:2*tt.count])
+			if err != nil {
+				t.Log(err)
+				t.Fail()
+			}
+			if !reflect.DeepEqual(digests2, _test_32_digests[:tt.count]) {
 				t.Logf("Digests are different\n Expected: %x\n Produced: %x\n",
 					_test_32_digests[:tt.count], digests)
 				t.Fail()
@@ -191,7 +201,7 @@ func TestHash(t *testing.T) {
 func TestOddChunks(t *testing.T) {
 	digests := make([][32]byte, 1)
 	chunks := make([][32]byte, 1)
-	err := gohashtree.Hash(digests, chunks)
+	err := Hash(digests, chunks)
 	if err.Error() != "odd number of chunks" {
 		t.Logf("expected error: \"odd number of chunks\", got: \"%s\"", err)
 		t.Fail()
@@ -201,28 +211,13 @@ func TestOddChunks(t *testing.T) {
 func TestNotAllocatedDigest(t *testing.T) {
 	digests := make([][32]byte, 1)
 	chunks := make([][32]byte, 4)
-	err := gohashtree.Hash(digests, chunks)
+	err := Hash(digests, chunks)
 	expected := "not enough digest length, need at least 2, got 1"
 	if err.Error() != expected {
 		t.Logf("expected error: \"%s\", got: \"%s\"", expected, err)
 		t.Fail()
 	}
 }
-
-/*
-func TestSha256_1_generic(t *testing.T) {
-	digests := make([][32]byte, 32)
-	err := gohashtree.sha256_1_generic(&digests, _test_32_block, 32)
-	if err != nil {
-		t.Logf("Could not hash %s", err)
-		t.Fail()
-	}
-	if !reflect.DeepEqual(digests, _test_32_digests) {
-		t.Logf("Digests are different\n Expected: %x\n Produced: %x\n", _test_32_digests, digests)
-		t.Fail()
-	}
-}
-*/
 
 func OldHash(data []byte) [32]byte {
 	h := sha256.New()
@@ -247,7 +242,7 @@ func BenchmarkHash_1(b *testing.B) {
 	digests := make([][32]byte, 1)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		gohashtree.Hash(digests, chunks)
+		Hash(digests, chunks)
 	}
 }
 
@@ -267,7 +262,7 @@ func BenchmarkHash_4(b *testing.B) {
 	digests := make([][32]byte, 4)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		gohashtree.Hash(digests, chunks)
+		Hash(digests, chunks)
 	}
 }
 
@@ -287,7 +282,7 @@ func BenchmarkHash_8(b *testing.B) {
 	digests := make([][32]byte, 8)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		gohashtree.Hash(digests, chunks)
+		Hash(digests, chunks)
 	}
 }
 
@@ -307,7 +302,7 @@ func BenchmarkHash_16(b *testing.B) {
 	digests := make([][32]byte, 16)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		gohashtree.Hash(digests, chunks)
+		Hash(digests, chunks)
 	}
 }
 
@@ -334,6 +329,6 @@ func BenchmarkHashList(b *testing.B) {
 	digests := make([][32]byte, 200000)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		gohashtree.Hash(digests, balances)
+		Hash(digests, balances)
 	}
 }

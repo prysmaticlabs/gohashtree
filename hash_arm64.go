@@ -31,3 +31,4 @@ import (
 )
 
 var hasShani = cpuid.CPU.Supports(cpuid.SHA2)
+var supportedCPU = true
