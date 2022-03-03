@@ -30,6 +30,6 @@ import (
 	"github.com/klauspost/cpuid/v2"
 )
 
-var hasAVX512 = cpuid.CPU.Supports(cpuid.AVX512F, cpuid.AVX512VL)
+var hasAVX512 = false
 var hasAVX2 = cpuid.CPU.Supports(cpuid.AVX2, cpuid.BMI2)
 var hasShani = cpuid.CPU.Supports(cpuid.SHA)
