@@ -30,6 +30,10 @@ import (
 func _hash(digests *byte, p [][32]byte, count uint32)
 
 func Hash(digests [][32]byte, chunks [][32]byte) error {
+	if len(chunks) == 0 {
+		return nil
+	}
+
 	if len(chunks)%2 == 1 {
 		return fmt.Errorf("odd number of chunks")
 	}
