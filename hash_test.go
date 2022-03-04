@@ -21,13 +21,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 */
-package gohashtree
+package gohashtree_test
 
 import (
 	"reflect"
 	"testing"
 
 	"github.com/minio/sha256-simd"
+	"github.com/prysmaticlabs/gohashtree"
 )
 
 var _test_32_block = [][32]byte{
@@ -173,7 +174,7 @@ func TestHash(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			digests := make([][32]byte, tt.count)
-			err := Hash(digests, _test_32_block[:2*tt.count])
+			err := gohashtree.Hash(digests, _test_32_block[:2*tt.count])
 			if err != nil {
 				t.Log(err)
 				t.Fail()
@@ -184,7 +185,7 @@ func TestHash(t *testing.T) {
 				t.Fail()
 			}
 			digests2 := make([][32]byte, tt.count)
-			sha256_1_generic(digests2, _test_32_block[:2*tt.count])
+			gohashtree.Sha256_1_generic(digests2, _test_32_block[:2*tt.count])
 			if err != nil {
 				t.Log(err)
 				t.Fail()
@@ -201,7 +202,7 @@ func TestHash(t *testing.T) {
 func TestOddChunks(t *testing.T) {
 	digests := make([][32]byte, 1)
 	chunks := make([][32]byte, 1)
-	err := Hash(digests, chunks)
+	err := gohashtree.Hash(digests, chunks)
 	if err.Error() != "odd number of chunks" {
 		t.Logf("expected error: \"odd number of chunks\", got: \"%s\"", err)
 		t.Fail()
@@ -211,7 +212,7 @@ func TestOddChunks(t *testing.T) {
 func TestNotAllocatedDigest(t *testing.T) {
 	digests := make([][32]byte, 1)
 	chunks := make([][32]byte, 4)
-	err := Hash(digests, chunks)
+	err := gohashtree.Hash(digests, chunks)
 	expected := "not enough digest length, need at least 2, got 1"
 	if err.Error() != expected {
 		t.Logf("expected error: \"%s\", got: \"%s\"", expected, err)
@@ -242,7 +243,7 @@ func BenchmarkHash_1(b *testing.B) {
 	digests := make([][32]byte, 1)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Hash(digests, chunks)
+		gohashtree.Hash(digests, chunks)
 	}
 }
 
@@ -262,7 +263,7 @@ func BenchmarkHash_4(b *testing.B) {
 	digests := make([][32]byte, 4)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Hash(digests, chunks)
+		gohashtree.Hash(digests, chunks)
 	}
 }
 
@@ -282,7 +283,7 @@ func BenchmarkHash_8(b *testing.B) {
 	digests := make([][32]byte, 8)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Hash(digests, chunks)
+		gohashtree.Hash(digests, chunks)
 	}
 }
 
@@ -302,7 +303,7 @@ func BenchmarkHash_16(b *testing.B) {
 	digests := make([][32]byte, 16)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Hash(digests, chunks)
+		gohashtree.Hash(digests, chunks)
 	}
 }
 
@@ -329,6 +330,6 @@ func BenchmarkHashList(b *testing.B) {
 	digests := make([][32]byte, 200000)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		Hash(digests, balances)
+		gohashtree.Hash(digests, balances)
 	}
 }
