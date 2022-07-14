@@ -23,31 +23,9 @@ SOFTWARE.
 */
 package gohashtree
 
-import (
-	"fmt"
-)
+func _hash(digests *byte, p []byte, count uint32)
 
-func _hash(digests *byte, p [][32]byte, count uint32)
-
-func Hash(digests [][32]byte, chunks [][32]byte) error {
-	if len(chunks) == 0 {
-		return nil
-	}
-
-	if len(chunks)%2 == 1 {
-		return fmt.Errorf("odd number of chunks")
-	}
-	if len(digests) < len(chunks)/2 {
-		return fmt.Errorf("not enough digest length, need at least %v, got %v", len(chunks)/2, len(digests))
-	}
-	if supportedCPU {
-		_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
-	} else {
-		sha256_1_generic(digests, chunks)
-	}
+func Hash(digests []byte, chunks []byte) error {
+	_hash(&digests[0], chunks, uint32(len(chunks)/64))
 	return nil
-}
-
-func HashChunks(digests [][32]byte, chunks [][32]byte) {
-	_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
 }
