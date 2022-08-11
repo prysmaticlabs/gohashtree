@@ -32,5 +32,5 @@ import (
 
 var hasAVX512 = cpuid.CPU.Supports(cpuid.AVX512F, cpuid.AVX512VL)
 var hasAVX2 = cpuid.CPU.Supports(cpuid.AVX2, cpuid.BMI2)
-var hasShani = cpuid.CPU.Supports(cpuid.SHA)
+var hasShani = cpuid.CPU.Supports(cpuid.SHA, cpuid.AVX)
 var supportedCPU = hasAVX2 || hasShani || hasAVX512
