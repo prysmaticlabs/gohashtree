@@ -1,4 +1,4 @@
-module github.com/prysmaticlabs/gohashtree
+module github.com/umbracle/gohashtree
 
 go 1.17
 
