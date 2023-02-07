@@ -27,7 +27,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/prysmaticlabs/gohashtree"
+	"github.com/umbracle/gohashtree"
 )
 
 var _test_32_block = [][32]byte{
