@@ -27,7 +27,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/minio/sha256-simd"
 	"github.com/prysmaticlabs/gohashtree"
 )
 
@@ -173,13 +172,22 @@ func TestHash(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			digests := make([][32]byte, tt.count)
-			err := gohashtree.Hash(digests, _test_32_block[:2*tt.count])
+			digests := make([]byte, tt.count*32)
+			var my_test_32_block []byte
+			for i := 0; i < int(2*tt.count); i += 2 {
+				my_test_32_block = append(my_test_32_block, _test_32_block[i][:]...)
+				my_test_32_block = append(my_test_32_block, _test_32_block[i+1][:]...)
+			}
+			err := gohashtree.Hash(digests, my_test_32_block)
 			if err != nil {
 				t.Log(err)
 				t.Fail()
 			}
-			if !reflect.DeepEqual(digests, _test_32_digests[:tt.count]) {
+			var my_test_32_digests []byte
+			for i := 0; i < int(tt.count); i++ {
+				my_test_32_digests = append(my_test_32_digests, _test_32_digests[i][:]...)
+			}
+			if !reflect.DeepEqual(digests, my_test_32_digests) {
 				t.Logf("Digests are different\n Expected: %x\n Produced: %x\n",
 					_test_32_digests[:tt.count], digests)
 				t.Fail()
@@ -196,140 +204,5 @@ func TestHash(t *testing.T) {
 				t.Fail()
 			}
 		})
-	}
-}
-
-func TestOddChunks(t *testing.T) {
-	digests := make([][32]byte, 1)
-	chunks := make([][32]byte, 1)
-	err := gohashtree.Hash(digests, chunks)
-	if err.Error() != "odd number of chunks" {
-		t.Logf("expected error: \"odd number of chunks\", got: \"%s\"", err)
-		t.Fail()
-	}
-}
-
-func TestNotAllocatedDigest(t *testing.T) {
-	digests := make([][32]byte, 1)
-	chunks := make([][32]byte, 4)
-	err := gohashtree.Hash(digests, chunks)
-	expected := "not enough digest length, need at least 2, got 1"
-	if err.Error() != expected {
-		t.Logf("expected error: \"%s\", got: \"%s\"", expected, err)
-		t.Fail()
-	}
-}
-
-func OldHash(data []byte) [32]byte {
-	h := sha256.New()
-	h.Reset()
-	var b [32]byte
-	h.Write(data)
-	h.Sum(b[:0])
-	return b
-}
-
-func BenchmarkHash_1_minio(b *testing.B) {
-	chunks := [64]byte{'A'}
-	digests := make([][32]byte, 1)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		digests[0] = OldHash(chunks[:])
-	}
-}
-
-func BenchmarkHash_1(b *testing.B) {
-	chunks := make([][32]byte, 2)
-	digests := make([][32]byte, 1)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		gohashtree.Hash(digests, chunks)
-	}
-}
-
-func BenchmarkHash_4_minio(b *testing.B) {
-	chunks := [64 * 4]byte{'A'}
-	digests := make([][32]byte, 4)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		for j := 0; j < 4; j++ {
-			digests[j] = OldHash(chunks[j*64 : j*64+64])
-		}
-	}
-}
-
-func BenchmarkHash_4(b *testing.B) {
-	chunks := make([][32]byte, 8)
-	digests := make([][32]byte, 4)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		gohashtree.Hash(digests, chunks)
-	}
-}
-
-func BenchmarkHash_8_minio(b *testing.B) {
-	chunks := [64 * 8]byte{'A'}
-	digests := make([][32]byte, 8)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		for j := 0; j < 8; j++ {
-			digests[j] = OldHash(chunks[j*64 : j*64+64])
-		}
-	}
-}
-
-func BenchmarkHash_8(b *testing.B) {
-	chunks := make([][32]byte, 16)
-	digests := make([][32]byte, 8)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		gohashtree.Hash(digests, chunks)
-	}
-}
-
-func BenchmarkHash_16_minio(b *testing.B) {
-	chunks := [64 * 16]byte{'A'}
-	digests := make([][32]byte, 16)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		for j := 0; j < 16; j++ {
-			digests[j] = OldHash(chunks[j*64 : j*64+64])
-		}
-	}
-}
-
-func BenchmarkHash_16(b *testing.B) {
-	chunks := make([][32]byte, 32)
-	digests := make([][32]byte, 16)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		gohashtree.Hash(digests, chunks)
-	}
-}
-
-func BenchmarkHashLargeList_minio(b *testing.B) {
-	balances := make([][32]byte, 400000)
-	for i := 0; i < len(balances); i++ {
-		balances[i] = [32]byte{'A'}
-	}
-	digests := make([][32]byte, 200000)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		for j := 1; j < 200000; j++ {
-			batchedRT := append(balances[2*j][:], balances[2*j+1][:]...)
-			digests[j] = OldHash(batchedRT)
-		}
-	}
-}
-
-func BenchmarkHashList(b *testing.B) {
-	balances := make([][32]byte, 400000)
-	for i := 0; i < len(balances); i++ {
-		balances[i] = [32]byte{'A'}
-	}
-	digests := make([][32]byte, 200000)
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		gohashtree.Hash(digests, balances)
 	}
 }
