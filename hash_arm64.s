@@ -601,7 +601,7 @@ arm_x4_loop:
 	JMP	arm_x4_loop
 
 arm_x1:
-	VMOV	$0, VZ.S4	// Golang guarantees this is zero
+	VMOV	ZR, VZ.S4	// Golang guarantees this is zero
 	MOVD	$_DIGEST_1<>(SB), digest
 	MOVD	$_PADDING_1<>(SB), padding
 	ADD	NUM_BLKS<<5, OUTPUT_PTR, last
