@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2021 Prysmatic Labs
+# Copyright (c) 2021 Prysmatic Labs
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,9 +25,18 @@ package gohashtree
 
 import (
 	"fmt"
+	"reflect"
+	"unsafe"
 )
 
 func _hash(digests *byte, p [][32]byte, count uint32)
+func _hashByteSlice(digests *byte, p []byte, count uint32) {
+	header := *(*reflect.SliceHeader)(unsafe.Pointer(&p))
+	header.Len /= 32
+	header.Cap /= 32
+	chunks := *(*[][32]byte)(unsafe.Pointer(&header))
+	_hash(digests, chunks, count)
+}
 
 func Hash(digests [][32]byte, chunks [][32]byte) error {
 	if len(chunks) == 0 {
@@ -50,4 +59,33 @@ func Hash(digests [][32]byte, chunks [][32]byte) error {
 
 func HashChunks(digests [][32]byte, chunks [][32]byte) {
 	_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
+}
+
+func HashByteSlice(digests []byte, chunks []byte) error {
+	if len(chunks) == 0 {
+		return nil
+	}
+	if len(chunks)%64 != 0 {
+		return fmt.Errorf("chunks not multiple of 64 bytes")
+	}
+	if len(digests)%32 != 0 {
+		return fmt.Errorf("digests not multiple of 32 bytes")
+	}
+	if len(digests) < len(chunks)/2 {
+		return fmt.Errorf("not enough digest length, need at least %d, got %d", len(chunks)/2, len(digests))
+	}
+	if supportedCPU {
+		_hashByteSlice(&digests[0], chunks, uint32(len(chunks)/64))
+	} else {
+		chunkedDigest := make([][32]byte, len(digests)/32)
+		for i := 0; i < len(chunkedDigest); i++ {
+			copy(chunkedDigest[i][:], digests[32*i:32*i+32])
+		}
+		chunkedChunks := make([][32]byte, len(chunks)/32)
+		for i := 0; i < len(chunkedChunks); i++ {
+			copy(chunkedChunks[i][:], chunks[32*i:32*i+32])
+		}
+		sha256_1_generic(chunkedDigest, chunkedChunks)
+	}
+	return nil
 }
