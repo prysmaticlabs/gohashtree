@@ -67,6 +67,8 @@ func HashByteSlice(digests []byte, chunks []byte) error {
 	if len(digests) < len(chunks)/2 {
 		return fmt.Errorf("not enough digest length, need at least %d, got %d", len(chunks)/2, len(digests))
 	}
+	// We use an unsafe pointer to cast []byte to [][32]byte. The length and
+	// capacity of the slice need to be divided accordingly by 32.
 	header := *(*reflect.SliceHeader)(unsafe.Pointer(&chunks))
 	header.Len <<= 5
 	header.Cap <<= 5
