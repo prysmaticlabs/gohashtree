@@ -783,8 +783,8 @@ TEXT ·_hash(SB), 0, $928-36
 	JE   avx2
 
 	MOVQ digests+0(FP), OUTPUT_PTR // digests *[][32]byte
-	MOVQ p_base+8(FP), DATA_PTR  // p [][32]byte
-	MOVL count+32(FP), NUM_BLKS  // NUM_BLKS uint32
+	MOVQ p+8(FP), DATA_PTR  // p *[][32]byte or *[]byte
+	MOVL count+16(FP), NUM_BLKS  // NUM_BLKS uint32
 
 avx1:
 	CMPL	NUM_BLKS, $4
@@ -1314,9 +1314,9 @@ sha256_1_avx_epilog:
 
 // 8 blocks at a time with AVX2
 avx2:
-	MOVL count+32(FP), NUM_BLKS  // NUMBLKS uint32
-	MOVQ digests+0(FP), OUTPUT_PTR // digests *[][32]byte
-	MOVQ p_base+8(FP), DATA_PTR  // p [][32]byte
+	MOVL count+16(FP), NUM_BLKS  // NUMBLKS uint32
+	MOVQ digests+0(FP), OUTPUT_PTR // digests *[][32]byte or *[]byte
+	MOVQ p+8(FP), DATA_PTR  // p *[][32]byte or p *[]byte
 
 sha256_8_avx2_loop:
 	CMPL NUM_BLKS, $8
@@ -1591,8 +1591,8 @@ sha256_8_avx2_loop:
 // AVX 512 section
 avx512:
 	MOVQ digests+0(FP), OUTPUT_PTR
-	MOVQ p_base+8(FP), DATA_PTR
-	MOVL count+32(FP), NUM_BLKS
+	MOVQ p+8(FP), DATA_PTR
+	MOVL count+16(FP), NUM_BLKS
 
 	MOVQ	$_DIGEST_16<>(SB), DIGESTAVX512
 	MOVQ    $_PADDING_16<>(SB), PADDINGAVX512
@@ -2046,9 +2046,9 @@ avx512_loop:
 
 // SHA-ni section
 shani:
-	MOVQ digests+0(FP), OUTPUT_PTR // digests *[][32]byte
-	MOVQ p_base+8(FP), DATA_PTR  // p [][32]byte
-	MOVL count+32(FP), NUM_BLKS  // NUM_BLKS uint32
+	MOVQ digests+0(FP), OUTPUT_PTR // digests *[][32]byte or *[]byte
+	MOVQ p+8(FP), DATA_PTR  // p *[][32]byte or *[]byte
+	MOVL count+16(FP), NUM_BLKS  // NUM_BLKS uint32
 
 	// Golang assembly does not guarantee stack aligned at 16 bytes
 	MOVQ SP, SAVE_SP

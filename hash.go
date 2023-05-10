@@ -25,11 +25,9 @@ package gohashtree
 
 import (
 	"fmt"
-	"reflect"
-	"unsafe"
 )
 
-func _hash(digests *byte, p [][32]byte, count uint32)
+func _hash(digests *byte, p *byte, count uint32)
 
 func Hash(digests [][32]byte, chunks [][32]byte) error {
 	if len(chunks) == 0 {
@@ -43,7 +41,7 @@ func Hash(digests [][32]byte, chunks [][32]byte) error {
 		return fmt.Errorf("not enough digest length, need at least %v, got %v", len(chunks)/2, len(digests))
 	}
 	if supportedCPU {
-		_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
+		_hash(&digests[0][0], &chunks[0][0], uint32(len(chunks)/2))
 	} else {
 		sha256_1_generic(digests, chunks)
 	}
@@ -51,7 +49,7 @@ func Hash(digests [][32]byte, chunks [][32]byte) error {
 }
 
 func HashChunks(digests [][32]byte, chunks [][32]byte) {
-	_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
+	_hash(&digests[0][0], &chunks[0][0], uint32(len(chunks)/2))
 }
 
 func HashByteSlice(digests []byte, chunks []byte) error {
@@ -69,18 +67,17 @@ func HashByteSlice(digests []byte, chunks []byte) error {
 	}
 	// We use an unsafe pointer to cast []byte to [][32]byte. The length and
 	// capacity of the slice need to be divided accordingly by 32.
-	header := *(*reflect.SliceHeader)(unsafe.Pointer(&chunks))
-	header.Len <<= 5
-	header.Cap <<= 5
-	chunkedChunks := *(*[][32]byte)(unsafe.Pointer(&header))
-
 	if supportedCPU {
-		_hash(&digests[0], chunkedChunks, uint32(len(chunks)/64))
+		_hash(&digests[0], &chunks[0], uint32(len(chunks)/64))
 	} else {
-		headerDigest := *(*reflect.SliceHeader)(unsafe.Pointer(&digests))
-		headerDigest.Len <<= 5
-		headerDigest.Cap <<= 5
-		chunkedDigest := *(*[][32]byte)(unsafe.Pointer(&headerDigest))
+		chunkedChunks := make([][32]byte, len(chunks)/32)
+		for i := range chunkedChunks {
+			copy(chunkedChunks[i][:], chunks[32*i:32*i+32])
+		}
+		chunkedDigest := make([][32]byte, len(digests)/32)
+		for i := range chunkedDigest {
+			copy(chunkedDigest[i][:], digests[32*i:32*i+32])
+		}
 		sha256_1_generic(chunkedDigest, chunkedChunks)
 	}
 	return nil
