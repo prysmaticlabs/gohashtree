@@ -461,8 +461,8 @@ Copied parts are
 
 TEXT ·_hash(SB), 0, $1024-36
 	MOVD digests+0(FP), OUTPUT_PTR
-	MOVD p_base+8(FP), DATA_PTR
-	MOVWU count+32(FP), NUM_BLKS
+	MOVD p+8(FP), DATA_PTR
+	MOVWU count+16(FP), NUM_BLKS
 
 	MOVBU ·hasShani(SB), check_shani
 	CBNZ  check_shani, shani

@@ -316,6 +316,15 @@ func BenchmarkHash_1(b *testing.B) {
 	}
 }
 
+func BenchmarkHash_slice_1(b *testing.B) {
+	chunks := make([]byte, 64)
+	digests := make([]byte, 32)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		gohashtree.HashByteSlice(digests, chunks)
+	}
+}
+
 func BenchmarkHash_4_minio(b *testing.B) {
 	chunks := [64 * 4]byte{'A'}
 	digests := make([][32]byte, 4)
@@ -333,6 +342,15 @@ func BenchmarkHash_4(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		gohashtree.Hash(digests, chunks)
+	}
+}
+
+func BenchmarkHash_slice_4(b *testing.B) {
+	chunks := make([]byte, 8*32)
+	digests := make([]byte, 4*32)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		gohashtree.HashByteSlice(digests, chunks)
 	}
 }
 
@@ -356,6 +374,15 @@ func BenchmarkHash_8(b *testing.B) {
 	}
 }
 
+func BenchmarkHash_slice_8(b *testing.B) {
+	chunks := make([]byte, 16*32)
+	digests := make([]byte, 8*32)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		gohashtree.HashByteSlice(digests, chunks)
+	}
+}
+
 func BenchmarkHash_16_minio(b *testing.B) {
 	chunks := [64 * 16]byte{'A'}
 	digests := make([][32]byte, 16)
@@ -373,6 +400,15 @@ func BenchmarkHash_16(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		gohashtree.Hash(digests, chunks)
+	}
+}
+
+func BenchmarkHash_slice_16(b *testing.B) {
+	chunks := make([]byte, 32*32)
+	digests := make([]byte, 16*32)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		gohashtree.HashByteSlice(digests, chunks)
 	}
 }
 
@@ -400,5 +436,17 @@ func BenchmarkHashList(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		gohashtree.Hash(digests, balances)
+	}
+}
+
+func BenchmarkHashList_slice(b *testing.B) {
+	balances := make([]byte, 400000*32)
+	for i := 0; i < len(balances); i += 32 {
+		balances[i] = byte('A')
+	}
+	digests := make([]byte, 200000*32)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		gohashtree.HashByteSlice(digests, balances)
 	}
 }
