@@ -30,6 +30,8 @@ import (
 
 func _hash(digests *byte, p [][32]byte, count uint32)
 
+// Hash hashes the chunks two at the time and outputs the digests on the first
+// argument. It does check for lengths on the inputs.
 func Hash(digests [][32]byte, chunks [][32]byte) error {
 	if len(chunks) == 0 {
 		return nil
@@ -49,8 +51,13 @@ func Hash(digests [][32]byte, chunks [][32]byte) error {
 	return nil
 }
 
+// HashChunks is the same as Hash, but does not do error checking on the lengths of the slices
 func HashChunks(digests [][32]byte, chunks [][32]byte) {
-	_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
+	if supportedCPU {
+		_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
+	} else {
+		sha256_1_generic(digests, chunks)
+	}
 }
 
 func HashByteSlice(digests []byte, chunks []byte) error {
