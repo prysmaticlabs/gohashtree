@@ -25,7 +25,6 @@ package gohashtree
 
 import (
 	"fmt"
-	"reflect"
 	"unsafe"
 )
 
@@ -69,18 +68,14 @@ func HashByteSlice(digests []byte, chunks []byte) error {
 	}
 	// We use an unsafe pointer to cast []byte to [][32]byte. The length and
 	// capacity of the slice need to be divided accordingly by 32.
-	header := *(*reflect.SliceHeader)(unsafe.Pointer(&chunks))
-	header.Len <<= 5
-	header.Cap <<= 5
-	chunkedChunks := *(*[][32]byte)(unsafe.Pointer(&header))
+	sizeChunks := (len(chunks) >> 5)
+	chunkedChunks := unsafe.Slice((*[32]byte)(unsafe.Pointer(&chunks[0])), sizeChunks)
 
+	sizeDigests := (len(digests) >> 5)
+	chunkedDigest := unsafe.Slice((*[32]byte)(unsafe.Pointer(&digests[0])), sizeDigests)
 	if supportedCPU {
-		_hash(&digests[0], chunkedChunks, uint32(len(chunks)/64))
+		Hash(chunkedDigest, chunkedChunks)
 	} else {
-		headerDigest := *(*reflect.SliceHeader)(unsafe.Pointer(&digests))
-		headerDigest.Len <<= 5
-		headerDigest.Cap <<= 5
-		chunkedDigest := *(*[][32]byte)(unsafe.Pointer(&headerDigest))
 		sha256_1_generic(chunkedDigest, chunkedChunks)
 	}
 	return nil
