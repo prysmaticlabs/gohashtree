@@ -28,7 +28,7 @@ import (
 	"unsafe"
 )
 
-func _hash[B ~[32]byte](digests *byte, p []B, count uint32)
+func _hash[P ~[32]byte](digests *byte, p []P, count uint32) {}
 
 // Hash hashes the chunks two at the time and outputs the digests on the first
 // argument. It does check for lengths on the inputs.
