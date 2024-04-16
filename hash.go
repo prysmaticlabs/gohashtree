@@ -28,11 +28,11 @@ import (
 	"unsafe"
 )
 
-func _hash(digests *byte, p [][32]byte, count uint32)
+func _hash[B ~[32]byte](digests *byte, p []B, count uint32)
 
 // Hash hashes the chunks two at the time and outputs the digests on the first
 // argument. It does check for lengths on the inputs.
-func Hash(digests [][32]byte, chunks [][32]byte) error {
+func Hash[D, C ~[32]byte](digests []D, chunks []C) error {
 	if len(chunks) == 0 {
 		return nil
 	}
@@ -52,7 +52,7 @@ func Hash(digests [][32]byte, chunks [][32]byte) error {
 }
 
 // HashChunks is the same as Hash, but does not do error checking on the lengths of the slices
-func HashChunks(digests [][32]byte, chunks [][32]byte) {
+func HashChunks[D, C ~[32]byte](digests []D, chunks []C) {
 	if supportedCPU {
 		_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
 	} else {
