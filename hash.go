@@ -38,10 +38,10 @@ func Hash(digests [][32]byte, chunks [][32]byte) error {
 	}
 
 	if len(chunks)%2 == 1 {
-		return fmt.Errorf("odd number of chunks")
+		return ErrOddChunks
 	}
 	if len(digests) < len(chunks)/2 {
-		return fmt.Errorf("not enough digest length, need at least %v, got %v", len(chunks)/2, len(digests))
+		return fmt.Errorf("%w: need at least %v, got %v", ErrNotEnoughDigests, len(chunks)/2, len(digests))
 	}
 	if supportedCPU {
 		_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
@@ -64,14 +64,17 @@ func HashByteSlice(digests []byte, chunks []byte) error {
 	if len(chunks) == 0 {
 		return nil
 	}
+
 	if len(chunks)%64 != 0 {
-		return fmt.Errorf("chunks not multiple of 64 bytes")
+		return ErrNotMultipleOf64
 	}
+
 	if len(digests)%32 != 0 {
-		return fmt.Errorf("digests not multiple of 32 bytes")
+		return ErrNotMultipleOf32
 	}
+
 	if len(digests) < len(chunks)/2 {
-		return fmt.Errorf("not enough digest length, need at least %d, got %d", len(chunks)/2, len(digests))
+		return fmt.Errorf("%w: need at least %v, got %v", ErrNotEnoughDigests, len(chunks)/2, len(digests))
 	}
 	// We use an unsafe pointer to cast []byte to [][32]byte. The length and
 	// capacity of the slice need to be divided accordingly by 32.

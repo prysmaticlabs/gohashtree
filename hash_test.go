@@ -24,6 +24,7 @@ SOFTWARE.
 package gohashtree_test
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -283,7 +284,7 @@ func TestNotAllocatedDigest(t *testing.T) {
 	chunks := make([][32]byte, 4)
 	err := gohashtree.Hash(digests, chunks)
 	expected := "not enough digest length, need at least 2, got 1"
-	if err.Error() != expected {
+	if !errors.Is(err, gohashtree.ErrNotEnoughDigests) {
 		t.Logf("expected error: \"%s\", got: \"%s\"", expected, err)
 		t.Fail()
 	}
