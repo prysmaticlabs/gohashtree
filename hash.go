@@ -66,11 +66,11 @@ func HashByteSlice(digests []byte, chunks []byte) error {
 	}
 
 	if len(chunks)%64 != 0 {
-		return ErrNotMultipleOf64
+		return ErrChunksNotMultipleOf64
 	}
 
 	if len(digests)%32 != 0 {
-		return ErrNotMultipleOf32
+		return ErrDigestsNotMultipleOf32
 	}
 
 	if len(digests) < len(chunks)/2 {
