@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2021 Prysmatic Labs
+# Copyright (c) 2021 Prysmatic Labs
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,4 +25,4 @@ package gohashtree
 
 // Export internal functions for testing.
 
-var Sha256_1_generic = sha256_1_generic
+var Sha256_1_generic = sha256_1_generic[[32]byte, [32]byte]
