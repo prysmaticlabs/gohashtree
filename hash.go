@@ -28,8 +28,6 @@ import (
 	"unsafe"
 )
 
-func _hash(digests *byte, p [][32]byte, count uint32)
-
 // Hash hashes the chunks two at the time and outputs the digests on the first
 // argument. It does check for lengths on the inputs.
 func Hash(digests [][32]byte, chunks [][32]byte) error {

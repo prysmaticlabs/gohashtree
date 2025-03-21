@@ -32,3 +32,5 @@ import (
 
 var hasShani = cpuid.CPU.Supports(cpuid.SHA2)
 var supportedCPU = true
+
+func _hash(digests *byte, p [][32]byte, count uint32)
