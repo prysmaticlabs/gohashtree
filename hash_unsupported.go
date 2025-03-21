@@ -26,4 +26,5 @@ SOFTWARE.
 package gohashtree
 
 var supportedCPU = false
+
 func _hash(digests *byte, p [][32]byte, count uint32) {}
