@@ -59,4 +59,4 @@ jobs:
       - name: Test
         run: |
           GOARCH=riscv64 go test -v ./... -c -o test.riscv64
-          qemu-riscv64-static test.riscv64
+          qemu-riscv64-static test.riscv64 -test.v
