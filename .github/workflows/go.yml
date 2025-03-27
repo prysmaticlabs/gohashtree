@@ -11,7 +11,7 @@ jobs:
     strategy:
       matrix:
         go: [ '1.21', '1.22' ]
-	runner: [ ubuntu-latest, ubuntu-24.04-arm ]
+        runner: [ 'ubuntu-latest', 'ubuntu-24.04-arm' ]
     runs-on: ${{ matrix.runner }}
     name: Go ${{ matrix.go }} supported test
     steps:
@@ -58,5 +58,5 @@ jobs:
 
       - name: Test
         run: |
-	  GOARCH=riscv64 go test -v ./... -c -o test.riscv64
-	  qemu-riscv64-static test.riscv64
+          GOARCH=riscv64 go test -v ./... -c -o test.riscv64
+          qemu-riscv64-static test.riscv64
