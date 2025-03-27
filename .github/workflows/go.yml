@@ -13,7 +13,7 @@ jobs:
         go: [ '1.21', '1.22' ]
         runner: [ 'ubuntu-latest', 'ubuntu-24.04-arm' ]
     runs-on: ${{ matrix.runner }}
-    name: Go ${{ matrix.go }} supported test
+    name: Go ${{ matrix.go }} ${{ matrix.runner }} supported test
     steps:
       - name: Set up Go 1.x
         uses: actions/setup-go@v4
