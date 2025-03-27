@@ -39,6 +39,9 @@ jobs:
     runs-on: ubuntu-latest
     name: Go ${{ matrix.go }} unsupported test
     steps:
+      - name: Update package index
+        run: sudo apt-get update
+
       - name: install qemu
         run: sudo apt install --yes qemu-user-static
 
