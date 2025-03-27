@@ -1,7 +1,7 @@
 /*
 MIT License
 
-# Copyright (c) 2021 Prysmatic Labs
+# Copyright (c) 2021-2025 Prysmatic Labs
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -27,8 +27,6 @@ import (
 	"fmt"
 	"unsafe"
 )
-
-func _hash(digests *byte, p [][32]byte, count uint32)
 
 // Hash hashes the chunks two at the time and outputs the digests on the first
 // argument. It does check for lengths on the inputs.

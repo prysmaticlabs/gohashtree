@@ -1,10 +1,9 @@
-//go:build arm64
-// +build arm64
+//go:build !amd64 && !arm64
 
 /*
 MIT License
 
-Copyright (c) 2021-2025 Prysmatic Labs
+Copyright (c) 2025 Prysmatic Labs
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -26,11 +25,6 @@ SOFTWARE.
 */
 package gohashtree
 
-import (
-	"github.com/klauspost/cpuid/v2"
-)
+var supportedCPU = false
 
-var hasShani = cpuid.CPU.Supports(cpuid.SHA2)
-var supportedCPU = true
-
-func _hash(digests *byte, p [][32]byte, count uint32)
+func _hash(digests *byte, p [][32]byte, count uint32) {}

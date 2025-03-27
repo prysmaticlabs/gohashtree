@@ -4,7 +4,7 @@
 /*
 MIT License
 
-Copyright (c) 2021 Prysmatic Labs
+Copyright (c) 2021-2025 Prysmatic Labs
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -34,3 +34,5 @@ var hasAVX512 = cpuid.CPU.Supports(cpuid.AVX512F, cpuid.AVX512VL)
 var hasAVX2 = cpuid.CPU.Supports(cpuid.AVX2, cpuid.BMI2)
 var hasShani = cpuid.CPU.Supports(cpuid.SHA, cpuid.AVX)
 var supportedCPU = hasAVX2 || hasShani || hasAVX512
+
+func _hash(digests *byte, p [][32]byte, count uint32)
