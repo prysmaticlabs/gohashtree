@@ -1,7 +1,7 @@
 /*
 MIT License
 
-Copyright (c) 2021-2022 Prysmatic Labs
+# Copyright (c) 2021-2022 Prysmatic Labs
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -125,7 +125,7 @@ var _K = []uint32{
 	0xc67178f2,
 }
 
-func sha256_1_generic(digests [][32]byte, p [][32]byte) {
+func sha256_1_generic[D, P ~[32]byte](digests []D, p []P) {
 	var w [16]uint32
 	for k := 0; k < len(p)/2; k++ {
 		// First 16 rounds
@@ -217,7 +217,7 @@ func sha256_1_generic(digests [][32]byte, p [][32]byte) {
 		h6 += g
 		h7 += h
 
-		var dig [32]byte
+		var dig D
 		binary.BigEndian.PutUint32(dig[0:4], h0)
 		binary.BigEndian.PutUint32(dig[4:8], h1)
 		binary.BigEndian.PutUint32(dig[8:12], h2)

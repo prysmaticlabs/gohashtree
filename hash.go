@@ -30,7 +30,7 @@ import (
 
 // Hash hashes the chunks two at the time and outputs the digests on the first
 // argument. It does check for lengths on the inputs.
-func Hash(digests [][32]byte, chunks [][32]byte) error {
+func Hash[D, C ~[32]byte](digests []D, chunks []C) error {
 	if len(chunks) == 0 {
 		return nil
 	}
@@ -42,7 +42,7 @@ func Hash(digests [][32]byte, chunks [][32]byte) error {
 		return fmt.Errorf("%w: need at least %v, got %v", ErrNotEnoughDigests, len(chunks)/2, len(digests))
 	}
 	if supportedCPU {
-		_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
+		_hash(&digests[0][0], *(*[][32]byte)(unsafe.Pointer(&chunks)), uint32(len(chunks)/2))
 	} else {
 		sha256_1_generic(digests, chunks)
 	}
@@ -50,9 +50,9 @@ func Hash(digests [][32]byte, chunks [][32]byte) error {
 }
 
 // HashChunks is the same as Hash, but does not do error checking on the lengths of the slices
-func HashChunks(digests [][32]byte, chunks [][32]byte) {
+func HashChunks[D, C ~[32]byte](digests []D, chunks []C) {
 	if supportedCPU {
-		_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
+		_hash(&digests[0][0], *(*[][32]byte)(unsafe.Pointer(&chunks[0])), uint32(len(chunks)/2))
 	} else {
 		sha256_1_generic(digests, chunks)
 	}
