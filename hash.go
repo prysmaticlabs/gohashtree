@@ -28,25 +28,13 @@ import (
 	"unsafe"
 )
 
-const (
-	chunkSize       = 32 // bytes in one chunk
-	chunksPerDigest = 2
-
-	// widestAsmBatch is how many digests the widest dispatch path (AVX-512)
-	// emits per loop iteration. AVX2 and AVX take 8 and 4, which divide it, so
-	// a whole number of these iterations leaves no scalar tail on any path.
-	widestAsmBatch   = 16
-	chunksPerAsmIter = chunksPerDigest * widestAsmBatch
-
-	// maxAsmBytes is how much input one _hash call may take. _hash is assembly,
-	// which the runtime never treats as an asynchronous preemption point, so a
-	// call covering a whole Merkle layer holds up every goroutine in the
-	// process for as long as it runs whenever the collector stops the world.
-	maxAsmBytes = 64 * 1024
-
-	// maxAsmChunks is that budget in chunks, truncated to whole iterations.
-	maxAsmChunks = maxAsmBytes / chunkSize / chunksPerAsmIter * chunksPerAsmIter
-)
+// The maximum number of chunks that can be passed to _hash(). The limit exists
+// because implementations that rely on assembly routines are not preemptible.
+// chunksPerAsmIter is what the widest dispatch path (AVX-512) consumes per
+// iteration, so a multiple of it leaves no scalar tail on any path.
+const chunksPerAsmIter = 32
+const maxAsmIters = 64
+const maxAsmChunks = chunksPerAsmIter * maxAsmIters // 64KiB
 
 // hashChunked feeds _hash at most maxAsmChunks at a time. Between calls the
 // goroutine is in Go code, where a collection can preempt it.
