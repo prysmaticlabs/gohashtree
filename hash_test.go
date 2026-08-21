@@ -25,7 +25,11 @@ package gohashtree_test
 
 import (
 	"errors"
+	"math"
 	"reflect"
+	"runtime"
+	"runtime/metrics"
+	"sync"
 	"testing"
 
 	"github.com/minio/sha256-simd"
@@ -402,4 +406,74 @@ func BenchmarkHashList(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		gohashtree.Hash(digests, balances)
 	}
+}
+
+// BenchmarkSTW reports the worst "stopping the world" pause a garbage
+// collection saw while a large Merkle layer was being hashed. _hash is
+// assembly, which the runtime never treats as an asynchronous preemption
+// point, so a call covering a whole layer holds up every collection in the
+// process for as long as it runs. Run with GOMAXPROCS>=2 so the hashing and
+// the collector overlap. The ns/op is not a throughput figure: the collector
+// loop competes for the same CPUs and runs far more often once the pause is
+// fixed.
+func BenchmarkSTW(b *testing.B) {
+	sample := []metrics.Sample{{Name: "/sched/pauses/stopping/gc:seconds"}}
+	metrics.Read(sample)
+	if sample[0].Value.Kind() != metrics.KindFloat64Histogram {
+		b.Skipf("this Go runtime has no %s metric", sample[0].Name)
+	}
+
+	const chunks = 1 << 21 // 64 MiB in, 32 MiB out
+	in := make([][32]byte, chunks)
+	for i := range in {
+		in[i][0] = byte(i)
+		in[i][31] = byte(i >> 8)
+	}
+	out := make([][32]byte, chunks/2)
+
+	metrics.Read(sample)
+	before := append([]uint64(nil), sample[0].Value.Float64Histogram().Counts...)
+
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			runtime.GC()
+		}
+	}()
+
+	b.SetBytes(int64(chunks) * 32)
+	b.ResetTimer()
+	var err error
+	for i := 0; i < b.N && err == nil; i++ {
+		err = gohashtree.Hash(out, in)
+	}
+	b.StopTimer()
+	close(stop)
+	wg.Wait()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	metrics.Read(sample)
+	h := sample[0].Value.Float64Histogram()
+	worst := 0.0
+	for i, c := range h.Counts {
+		if c <= before[i] {
+			continue
+		}
+		if upper := h.Buckets[i+1]; !math.IsInf(upper, 1) {
+			worst = upper
+		} else {
+			worst = h.Buckets[i]
+		}
+	}
+	b.ReportMetric(worst, "worstpause-sec")
 }
