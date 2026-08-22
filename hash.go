@@ -28,13 +28,16 @@ import (
 	"unsafe"
 )
 
-// The maximum number of chunks that can be passed to _hash(). The limit exists
-// because implementations that rely on assembly routines are not preemptible.
-// chunksPerAsmIter is what the widest dispatch path (AVX-512) consumes per
-// iteration, so a multiple of it leaves no scalar tail on any path.
-const chunksPerAsmIter = 32
-const maxAsmIters = 64
-const maxAsmChunks = chunksPerAsmIter * maxAsmIters // 64KiB
+const (
+	// chunksPerAsmIter is what the widest dispatch path (AVX-512) consumes per
+	// iteration, so a multiple of it leaves no scalar tail on any path.
+	chunksPerAsmIter = 32
+	maxAsmIters      = 64
+	// maxAsmChunks is the maximum number of chunks that can be passed to
+	// _hash(). The limit exists because implementations that rely on assembly
+	// routines are not asynchronously preemptible.
+	maxAsmChunks = chunksPerAsmIter * maxAsmIters // 64KiB
+)
 
 // hashChunked feeds _hash at most maxAsmChunks at a time. Between calls the
 // goroutine is in Go code, where a collection can preempt it.
@@ -44,7 +47,10 @@ func hashChunked(digests [][32]byte, chunks [][32]byte) {
 		chunks = chunks[maxAsmChunks:]
 		digests = digests[maxAsmChunks/2:]
 	}
-	_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
+	// An odd trailing chunk yields no digest, so digests may be empty here.
+	if len(chunks) > 1 {
+		_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
+	}
 }
 
 // Hash hashes the chunks two at the time and outputs the digests on the first

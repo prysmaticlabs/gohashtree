@@ -26,3 +26,5 @@ package gohashtree
 // Export internal functions for testing.
 
 var Sha256_1_generic = sha256_1_generic
+
+const MaxAsmChunks = maxAsmChunks
