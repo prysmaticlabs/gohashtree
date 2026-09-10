@@ -28,6 +28,31 @@ import (
 	"unsafe"
 )
 
+const (
+	// chunksPerAsmIter is what the widest dispatch path (AVX-512) consumes per
+	// iteration, so a multiple of it leaves no scalar tail on any path.
+	chunksPerAsmIter = 32
+	maxAsmIters      = 64
+	// maxAsmChunks is the maximum number of chunks that can be passed to
+	// _hash(). The limit exists because implementations that rely on assembly
+	// routines are not asynchronously preemptible.
+	maxAsmChunks = chunksPerAsmIter * maxAsmIters // 64KiB
+)
+
+// hashChunked feeds _hash at most maxAsmChunks at a time. Between calls the
+// goroutine is in Go code, where a collection can preempt it.
+func hashChunked(digests [][32]byte, chunks [][32]byte) {
+	for len(chunks) > maxAsmChunks {
+		_hash(&digests[0][0], chunks[:maxAsmChunks], maxAsmChunks/2)
+		chunks = chunks[maxAsmChunks:]
+		digests = digests[maxAsmChunks/2:]
+	}
+	// An odd trailing chunk yields no digest, so digests may be empty here.
+	if len(chunks) > 1 {
+		_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
+	}
+}
+
 // Hash hashes the chunks two at the time and outputs the digests on the first
 // argument. It does check for lengths on the inputs.
 func Hash(digests [][32]byte, chunks [][32]byte) error {
@@ -42,7 +67,7 @@ func Hash(digests [][32]byte, chunks [][32]byte) error {
 		return fmt.Errorf("%w: need at least %v, got %v", ErrNotEnoughDigests, len(chunks)/2, len(digests))
 	}
 	if supportedCPU {
-		_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
+		hashChunked(digests, chunks)
 	} else {
 		sha256_1_generic(digests, chunks)
 	}
@@ -52,7 +77,7 @@ func Hash(digests [][32]byte, chunks [][32]byte) error {
 // HashChunks is the same as Hash, but does not do error checking on the lengths of the slices
 func HashChunks(digests [][32]byte, chunks [][32]byte) {
 	if supportedCPU {
-		_hash(&digests[0][0], chunks, uint32(len(chunks)/2))
+		hashChunked(digests, chunks)
 	} else {
 		sha256_1_generic(digests, chunks)
 	}

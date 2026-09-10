@@ -25,7 +25,13 @@ package gohashtree_test
 
 import (
 	"errors"
+	"fmt"
+	"math"
+	"math/rand"
 	"reflect"
+	"runtime"
+	"runtime/metrics"
+	"sync"
 	"testing"
 
 	"github.com/minio/sha256-simd"
@@ -290,6 +296,65 @@ func TestNotAllocatedDigest(t *testing.T) {
 	}
 }
 
+// TestHashChunkedBoundary checks the sizes around the maxAsmChunks cut, where
+// hashChunked switches from one _hash call to several. The generic Go hasher
+// is the oracle: it hashes every pair independently, so it cannot share the
+// off-by-one the chunking loop could have.
+func TestHashChunkedBoundary(t *testing.T) {
+	const maxAsmChunks = gohashtree.MaxAsmChunks
+	counts := []int{
+		2,
+		maxAsmChunks - 2, maxAsmChunks, maxAsmChunks + 2,
+		2*maxAsmChunks - 2, 2 * maxAsmChunks, 2*maxAsmChunks + 2,
+		3*maxAsmChunks + 2,
+	}
+	rng := rand.New(rand.NewSource(1))
+	for _, count := range counts {
+		t.Run(fmt.Sprintf("%d chunks", count), func(t *testing.T) {
+			chunks := make([][32]byte, count)
+			for i := range chunks {
+				rng.Read(chunks[i][:])
+			}
+			digests := make([][32]byte, count/2)
+			if err := gohashtree.Hash(digests, chunks); err != nil {
+				t.Fatal(err)
+			}
+			expected := make([][32]byte, count/2)
+			gohashtree.Sha256_1_generic(expected, chunks)
+			if !reflect.DeepEqual(digests, expected) {
+				for i := range expected {
+					if digests[i] != expected[i] {
+						t.Fatalf("digest %d differs\n Expected: %x\n Produced: %x", i, expected[i], digests[i])
+					}
+				}
+			}
+		})
+	}
+}
+
+// TestHashChunkedOddTail checks that an odd chunk count past the maxAsmChunks
+// cut still hashes every full pair instead of indexing an exhausted digest
+// slice.
+func TestHashChunkedOddTail(t *testing.T) {
+	const maxAsmChunks = gohashtree.MaxAsmChunks
+	for _, count := range []int{maxAsmChunks + 1, 2*maxAsmChunks + 1} {
+		t.Run(fmt.Sprintf("%d chunks", count), func(t *testing.T) {
+			chunks := make([][32]byte, count)
+			for i := range chunks {
+				chunks[i][0] = byte(i)
+				chunks[i][31] = byte(i >> 8)
+			}
+			digests := make([][32]byte, count/2)
+			gohashtree.HashChunks(digests, chunks)
+			expected := make([][32]byte, count/2)
+			gohashtree.Sha256_1_generic(expected, chunks[:count-1])
+			if !reflect.DeepEqual(digests, expected) {
+				t.Fatal("HashChunks() != Sha256_1_generic()")
+			}
+		})
+	}
+}
+
 func OldHash(data []byte) [32]byte {
 	h := sha256.New()
 	h.Reset()
@@ -402,4 +467,73 @@ func BenchmarkHashList(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		gohashtree.Hash(digests, balances)
 	}
+}
+
+// BenchmarkSTW reports the worst "stopping the world" pause a garbage
+// collection saw while a large Merkle layer was being hashed. _hash is
+// assembly, which the runtime never treats as an asynchronous preemption
+// point, so a call covering a whole layer holds up every collection in the
+// process for as long as it runs. Run with GOMAXPROCS>=2 so the hashing and
+// the collector overlap. The ns/op is not a throughput figure: the collector
+// loop competes for the same CPUs and runs far more often once the pause is
+// fixed.
+func BenchmarkSTW(b *testing.B) {
+	sample := []metrics.Sample{{Name: "/sched/pauses/stopping/gc:seconds"}}
+	metrics.Read(sample)
+	if sample[0].Value.Kind() != metrics.KindFloat64Histogram {
+		b.Skipf("this Go runtime has no %s metric", sample[0].Name)
+	}
+
+	const chunks = 1 << 21 // 64 MiB in, 32 MiB out
+	in := make([][32]byte, chunks)
+	for i := range in {
+		in[i][0] = byte(i)
+		in[i][31] = byte(i >> 8)
+	}
+	out := make([][32]byte, chunks/2)
+
+	metrics.Read(sample)
+	before := append([]uint64(nil), sample[0].Value.Float64Histogram().Counts...)
+
+	stop := make(chan struct{})
+	var wg sync.WaitGroup
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for {
+			select {
+			case <-stop:
+				return
+			default:
+			}
+			runtime.GC()
+		}
+	}()
+
+	b.ResetTimer()
+	var err error
+	for i := 0; i < b.N && err == nil; i++ {
+		err = gohashtree.Hash(out, in)
+	}
+	b.StopTimer()
+	close(stop)
+	wg.Wait()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	metrics.Read(sample)
+	h := sample[0].Value.Float64Histogram()
+	worst := 0.0
+	for i, c := range h.Counts {
+		if c <= before[i] {
+			continue
+		}
+		if upper := h.Buckets[i+1]; !math.IsInf(upper, 1) {
+			worst = upper
+		} else {
+			worst = h.Buckets[i]
+		}
+	}
+	b.ReportMetric(worst, "worstpause-sec")
 }
